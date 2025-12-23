@@ -1,0 +1,30 @@
+{
+  "preprocessing": {
+    "enabled": true,
+    "rawImagePath": "/mnt/nas/photos/raw",
+    "processedImagePath": "/mnt/nas/photos/processed",
+    "inputExtensions": [".jpg", ".jpeg", ".png"],
+    "outputFormat": "webp",
+    "quality": 85,
+    "targetWidth": 1920,
+    "targetHeight": 1080,
+    "keepOriginals": true,
+    "archivePath": "/mnt/nas/photos/archive"
+  },
+  "imagePath": "/mnt/nas/photos/processed",
+  "imageExtensions": [".webp"],
+  "slideshowInterval": 5000,
+  "randomOrder": true,
+  "reshuffleInterval": 3600000,
+  "recursive": false,
+  "port": 3000,
+  "https": {
+    "enabled": false,
+    "cert": "/path/to/cert.pem",
+    "key": "/path/to/key.pem"
+  },
+  "admin": {
+    "enabled": true,
+    "allowedIPs": []
+  }
+}

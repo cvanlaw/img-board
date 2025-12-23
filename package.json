@@ -1,0 +1,17 @@
+{
+  "name": "image-slideshow",
+  "version": "1.0.0",
+  "description": "Auto-updating image slideshow for DAKboard",
+  "main": "server.js",
+  "dependencies": {
+    "express": "^4.18.0",
+    "chokidar": "^3.5.0",
+    "sharp": "^0.33.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "preprocess": "node preprocessor.js",
+    "dev": "NODE_ENV=development node server.js",
+    "dev:preprocess": "NODE_ENV=development node preprocessor.js"
+  }
+}
