@@ -97,6 +97,10 @@ After presenting the plan and getting user response:
 - Call ExitPlanMode
 - If user approved, begin implementation by creating the first file from the deliverables list
 
+## Step 9: Post-Implementation
+
+After implementation has been completed, remove the completed task from `./docs/tasks` and commit the changes using the `/ai-commit` slash command.
+
 ---
 
 ## Important Notes

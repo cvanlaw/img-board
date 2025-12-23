@@ -64,6 +64,12 @@ Two-process system running in Docker container:
 5. HTTPS (10) can start anytime after server core (03)
 6. Docker deployment (11) after all core features
 
+**Using the /next-task command:**
+- Run `/next-task` to automatically identify the next unstarted task
+- Scans task files, checks dependencies, and creates implementation plan
+- Generates todo list from acceptance criteria
+- Use after completing each task to maintain workflow progression
+
 **Testing critical path:**
 - Add image to raw directory → appears in slideshow after WebP conversion
 - Delete image from processed directory → removed from slideshow via SSE
