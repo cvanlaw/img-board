@@ -1,4 +1,6 @@
 const express = require('express');
+const http = require('http');
+const https = require('https');
 const path = require('path');
 const fs = require('fs').promises;
 const fsSync = require('fs');
@@ -347,26 +349,56 @@ function updateSettings(newConfig) {
   }
 }
 
-const server = app.listen(config.port, () => {
-  log('info', 'Server started', {
-    port: config.port,
-    imagePath: config.imagePath,
-    staticPath: 'public'
-  });
-});
+function startServer() {
+  let server;
 
-process.on('SIGTERM', () => {
-  log('info', 'SIGTERM received, shutting down gracefully');
-  server.close(() => {
-    log('info', 'Server closed');
-    process.exit(0);
-  });
-});
+  if (config.https?.enabled) {
+    try {
+      const options = {
+        cert: fsSync.readFileSync(config.https.cert),
+        key: fsSync.readFileSync(config.https.key)
+      };
 
-process.on('SIGINT', () => {
-  log('info', 'SIGINT received, shutting down gracefully');
-  server.close(() => {
-    log('info', 'Server closed');
-    process.exit(0);
+      server = https.createServer(options, app).listen(config.port, () => {
+        log('info', 'HTTPS server started', {
+          port: config.port,
+          imagePath: config.imagePath,
+          staticPath: 'public'
+        });
+      });
+    } catch (err) {
+      log('error', 'Failed to start HTTPS server', {
+        error: err.message,
+        cert: config.https.cert,
+        key: config.https.key
+      });
+      process.exit(1);
+    }
+  } else {
+    server = http.createServer(app).listen(config.port, () => {
+      log('info', 'HTTP server started', {
+        port: config.port,
+        imagePath: config.imagePath,
+        staticPath: 'public'
+      });
+    });
+  }
+
+  process.on('SIGTERM', () => {
+    log('info', 'SIGTERM received, shutting down gracefully');
+    server.close(() => {
+      log('info', 'Server closed');
+      process.exit(0);
+    });
   });
-});
+
+  process.on('SIGINT', () => {
+    log('info', 'SIGINT received, shutting down gracefully');
+    server.close(() => {
+      log('info', 'Server closed');
+      process.exit(0);
+    });
+  });
+}
+
+startServer();
