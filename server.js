@@ -1,9 +1,14 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs').promises;
+const chokidar = require('chokidar');
 
 const config = require('./config.json');
 const app = express();
+
+let imageList = [];
+let sseClients = [];
+let pendingChanges = { added: [], removed: [] };
 
 const log = (level, message, data = {}) => {
   console.log(JSON.stringify({
@@ -24,6 +29,29 @@ function shuffleArray(array) {
 }
 
 app.use(express.static('public'));
+
+function broadcast(event, data) {
+  const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
+  sseClients.forEach(client => client.write(message));
+  log('debug', 'SSE broadcast', { event, clientCount: sseClients.length });
+}
+
+app.get('/api/events', (req, res) => {
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
+
+  res.write('event: connected\ndata: {}\n\n');
+
+  sseClients.push(res);
+  log('info', 'SSE client connected', { total: sseClients.length });
+
+  req.on('close', () => {
+    sseClients = sseClients.filter(client => client !== res);
+    log('info', 'SSE client disconnected', { remaining: sseClients.length });
+  });
+});
 
 app.get('/health', (req, res) => {
   res.json({
@@ -91,6 +119,57 @@ app.get('/images/:filename', (req, res) => {
     }
   });
 });
+
+const watcher = chokidar.watch(config.imagePath, {
+  ignored: /(^|[\/\\])\../,
+  persistent: true,
+  ignoreInitial: false,
+  awaitWriteFinish: true,
+  usePolling: true,
+  interval: 1000
+});
+
+watcher.on('add', (filePath) => {
+  const filename = path.basename(filePath);
+  const ext = path.extname(filename).toLowerCase();
+  if (config.imageExtensions.includes(ext)) {
+    if (config.reshuffleInterval > 0) {
+      pendingChanges.added.push(filename);
+    } else {
+      imageList.push(filename);
+      broadcast('add', { filename });
+    }
+    log('info', 'Image added', { filename });
+  }
+});
+
+watcher.on('unlink', (filePath) => {
+  const filename = path.basename(filePath);
+  if (config.reshuffleInterval > 0) {
+    pendingChanges.removed.push(filename);
+  } else {
+    imageList = imageList.filter(f => f !== filename);
+    broadcast('remove', { filename });
+  }
+  log('info', 'Image removed', { filename });
+});
+
+if (config.reshuffleInterval > 0) {
+  setInterval(() => {
+    pendingChanges.added.forEach(f => imageList.push(f));
+    pendingChanges.removed.forEach(f => {
+      imageList = imageList.filter(img => img !== f);
+    });
+    pendingChanges = { added: [], removed: [] };
+
+    if (config.randomOrder) {
+      imageList = shuffleArray(imageList);
+    }
+
+    broadcast('reshuffle', { images: imageList });
+    log('info', 'Reshuffle broadcast', { count: imageList.length });
+  }, config.reshuffleInterval);
+}
 
 const server = app.listen(config.port, () => {
   log('info', 'Server started', {
