@@ -61,6 +61,9 @@ Write to the plan file (`/Users/cvanlaw/.claude/plans/[plan-id].md`):
 
 Use the TodoWrite tool to create a checklist from the task's acceptance criteria:
 - Extract each checkbox item from "## Acceptance Criteria"
+- **ALWAYS append these cleanup todos at the end:**
+  - "Remove completed task file from docs/tasks/ directory"
+  - "Commit all changes using /ai-commit"
 - Create todos with status "pending"
 - Use clear, actionable descriptions
 
@@ -69,7 +72,10 @@ Example:
 TodoWrite({
   todos: [
     { content: "npm install runs without errors", status: "pending", activeForm: "Running npm install" },
-    { content: "config.json contains all configuration options", status: "pending", activeForm: "Creating config.json" }
+    { content: "config.json contains all configuration options", status: "pending", activeForm: "Creating config.json" },
+    // 🔔 MANDATORY CLEANUP TODOS - ALWAYS INCLUDE:
+    { content: "Remove completed task file from docs/tasks/", status: "pending", activeForm: "Removing task file" },
+    { content: "Commit all changes using /ai-commit", status: "pending", activeForm: "Committing changes" }
   ]
 })
 ```
@@ -91,15 +97,37 @@ Options:
 - "Show me more details first"
 ```
 
-## Step 8: Exit Plan Mode
+## Step 8: Exit Plan Mode & Begin Implementation
 
 After presenting the plan and getting user response:
 - Call ExitPlanMode
 - If user approved, begin implementation by creating the first file from the deliverables list
 
-## Step 9: Post-Implementation
+**🔔 REMINDER**: When implementation is complete, you MUST complete Step 9 - remove the task file from docs/tasks/ and commit all changes using /ai-commit
 
-After implementation has been completed, remove the completed task from `./docs/tasks` and commit the changes using the `/ai-commit` slash command.
+## Step 9: ⚠️ MANDATORY POST-IMPLEMENTATION CLEANUP ⚠️
+
+**CRITICAL**: This step must ALWAYS be completed before the task is considered done.
+
+After implementation and testing are complete:
+
+### 9.1 Verify Implementation Success
+- All acceptance criteria from the todo list are marked "completed"
+- All tests pass (if applicable)
+- User has confirmed the implementation works
+
+### 9.2 Remove Task Document
+- Delete the completed task file from `./docs/tasks/` directory
+  - Example: `rm docs/tasks/06-admin-api.md` or use Bash tool
+- Verify the correct task file was removed (check task number matches what you just implemented)
+
+### 9.3 Commit All Changes
+- Run `/ai-commit` to create commits for:
+  - Implementation changes (all created/modified files)
+  - Task document deletion from docs/tasks/
+- All changes from the task must be committed (number of commits doesn't matter)
+
+**DO NOT PROCEED TO THE NEXT TASK UNTIL STEP 9 IS COMPLETE.**
 
 ---
 
