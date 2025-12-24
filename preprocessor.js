@@ -146,6 +146,81 @@ async function init() {
       log('error', 'Failed to reload config', { error: err.message });
     }
   });
+
+  const reprocessWatcher = chokidar.watch('./.reprocess-trigger', {
+    persistent: true,
+    ignoreInitial: true
+  });
+
+  reprocessWatcher.on('add', handleReprocessTrigger);
+  reprocessWatcher.on('change', handleReprocessTrigger);
+}
+
+async function scanDirectory(dirPath) {
+  const files = await fs.readdir(dirPath);
+
+  return files
+    .filter(f => {
+      const ext = path.extname(f).toLowerCase();
+      return config.preprocessing.inputExtensions.includes(ext);
+    })
+    .map(f => path.join(dirPath, f));
+}
+
+async function handleReprocessTrigger() {
+  log('info', 'Reprocess triggered, scanning raw directory...');
+
+  delete require.cache[require.resolve('./config.json')];
+  config = require('./config.json');
+
+  try {
+    const files = await scanDirectory(config.preprocessing.rawImagePath);
+    log('info', 'Found images to reprocess', { count: files.length });
+
+    let completed = 0;
+    let failed = 0;
+    const errors = [];
+
+    for (const file of files) {
+      try {
+        await processImage(file);
+        completed++;
+      } catch (err) {
+        failed++;
+        errors.push({ file: path.basename(file), error: err.message });
+        log('error', 'Failed to process image', {
+          file: path.basename(file),
+          error: err.message
+        });
+      }
+
+      await fs.writeFile('./.reprocess-progress.json',
+        JSON.stringify({
+          completed,
+          failed,
+          total: files.length,
+          timestamp: Date.now()
+        })
+      );
+    }
+
+    log('info', 'Reprocessing complete', { completed, failed, total: files.length });
+    if (errors.length > 0) {
+      log('warn', 'Failed files', { files: errors.map(e => e.file) });
+    }
+
+  } catch (err) {
+    log('error', 'Reprocessing failed', { error: err.message });
+  } finally {
+    await cleanup();
+  }
+}
+
+async function cleanup() {
+  try { await fs.unlink('./.reprocess-trigger'); } catch {}
+  setTimeout(async () => {
+    try { await fs.unlink('./.reprocess-progress.json'); } catch {}
+  }, 5000);
 }
 
 function updateSettings(newConfig) {
