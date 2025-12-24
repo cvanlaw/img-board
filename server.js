@@ -1,6 +1,7 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs').promises;
+const fsSync = require('fs');
 const chokidar = require('chokidar');
 
 const config = require('./config.json');
@@ -28,7 +29,57 @@ function shuffleArray(array) {
   return shuffled;
 }
 
+function deepMerge(target, source) {
+  const result = { ...target };
+  for (const key of Object.keys(source)) {
+    if (source[key] instanceof Object && !Array.isArray(source[key]) && key in target) {
+      result[key] = deepMerge(target[key], source[key]);
+    } else {
+      result[key] = source[key];
+    }
+  }
+  return result;
+}
+
+function ipMatches(clientIP, pattern) {
+  const ip = clientIP.replace(/^::ffff:/, '');
+
+  if (ip === '127.0.0.1' || ip === '::1' || clientIP === '::1') {
+    return true;
+  }
+  if (ip === pattern) {
+    return true;
+  }
+  if (pattern.endsWith('/24')) {
+    const subnet = pattern.replace('/24', '').split('.').slice(0, 3).join('.');
+    const ipPrefix = ip.split('.').slice(0, 3).join('.');
+    return subnet === ipPrefix;
+  }
+  return false;
+}
+
+function adminIPFilter(req, res, next) {
+  const config = require('./config.json');
+  const clientIP = req.ip || req.connection.remoteAddress;
+  const allowedPatterns = config.admin?.allowedIPs || [];
+
+  if (allowedPatterns.length === 0) {
+    return next();
+  }
+
+  const isAllowed = allowedPatterns.some(pattern => ipMatches(clientIP, pattern));
+  if (!isAllowed) {
+    log('warn', 'Admin access denied', { ip: clientIP });
+    return res.status(403).json({ error: 'Access denied' });
+  }
+  next();
+}
+
 app.use(express.static('public'));
+app.use(express.json());
+
+app.use('/admin', adminIPFilter);
+app.use('/api/admin', adminIPFilter);
 
 function broadcast(event, data) {
   const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
@@ -58,6 +109,96 @@ app.get('/health', (req, res) => {
     status: 'ok',
     uptime: process.uptime()
   });
+});
+
+app.get('/api/admin/config', (req, res) => {
+  const config = JSON.parse(fsSync.readFileSync('./config.json', 'utf8'));
+  res.json(config);
+});
+
+app.post('/api/admin/config', async (req, res) => {
+  try {
+    const currentConfig = JSON.parse(await fs.readFile('./config.json', 'utf8'));
+    const newConfig = deepMerge(currentConfig, req.body);
+
+    if (newConfig.slideshowInterval < 1000) {
+      return res.status(400).json({ error: 'slideshowInterval must be >= 1000ms' });
+    }
+    if (newConfig.preprocessing?.quality < 1 || newConfig.preprocessing?.quality > 100) {
+      return res.status(400).json({ error: 'quality must be 1-100' });
+    }
+
+    const tempFile = './config.json.tmp';
+    await fs.writeFile(tempFile, JSON.stringify(newConfig, null, 2));
+    await fs.rename(tempFile, './config.json');
+
+    const aspectChanged =
+      req.body.preprocessing?.targetWidth !== undefined ||
+      req.body.preprocessing?.targetHeight !== undefined;
+
+    if (aspectChanged) {
+      await fs.writeFile('./.reprocess-trigger', Date.now().toString());
+    }
+
+    log('info', 'Config updated', { aspectChanged });
+    res.json({ success: true, reprocessing: aspectChanged });
+  } catch (err) {
+    log('error', 'Config update failed', { error: err.message });
+    res.status(500).json({ error: 'Failed to update configuration' });
+  }
+});
+
+app.get('/api/admin/stats', async (req, res) => {
+  const config = require('./config.json');
+
+  let rawCount = 0;
+  let processedCount = 0;
+
+  try {
+    const rawFiles = await fs.readdir(config.preprocessing.rawImagePath);
+    rawCount = rawFiles.filter(f =>
+      config.preprocessing.inputExtensions.includes(path.extname(f).toLowerCase())
+    ).length;
+  } catch (e) {
+  }
+
+  try {
+    const processedFiles = await fs.readdir(config.imagePath);
+    processedCount = processedFiles.filter(f =>
+      config.imageExtensions.includes(path.extname(f).toLowerCase())
+    ).length;
+  } catch (e) {
+  }
+
+  res.json({
+    raw: rawCount,
+    processed: processedCount,
+    timestamp: Date.now()
+  });
+});
+
+app.post('/api/admin/reprocess', async (req, res) => {
+  if (fsSync.existsSync('./.reprocess-trigger') || fsSync.existsSync('./.reprocess-progress.json')) {
+    return res.status(409).json({ error: 'Reprocessing already in progress' });
+  }
+
+  await fs.writeFile('./.reprocess-trigger', Date.now().toString());
+  log('info', 'Reprocessing triggered');
+  res.json({
+    status: 'triggered',
+    message: 'Reprocessing started. Use /api/admin/reprocess-status to monitor.'
+  });
+});
+
+app.get('/api/admin/reprocess-status', async (req, res) => {
+  try {
+    const progress = JSON.parse(
+      await fs.readFile('./.reprocess-progress.json', 'utf8')
+    );
+    res.json({ active: true, ...progress });
+  } catch (e) {
+    res.json({ active: false });
+  }
 });
 
 app.get('/api/images', async (req, res) => {
