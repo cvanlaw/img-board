@@ -4,7 +4,7 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const chokidar = require('chokidar');
 
-const config = require('./config.json');
+let config = require('./config.json');
 const app = express();
 
 let imageList = [];
@@ -310,6 +310,41 @@ if (config.reshuffleInterval > 0) {
     broadcast('reshuffle', { images: imageList });
     log('info', 'Reshuffle broadcast', { count: imageList.length });
   }, config.reshuffleInterval);
+}
+
+const configWatcher = chokidar.watch('./config.json', {
+  persistent: true,
+  ignoreInitial: true,
+  awaitWriteFinish: {
+    stabilityThreshold: 500,
+    pollInterval: 100
+  }
+});
+
+configWatcher.on('change', () => {
+  try {
+    log('info', 'Config file changed, reloading...');
+    delete require.cache[require.resolve('./config.json')];
+    const newConfig = require('./config.json');
+    updateSettings(newConfig);
+  } catch (err) {
+    log('error', 'Failed to reload config', { error: err.message });
+  }
+});
+
+function updateSettings(newConfig) {
+  const oldInterval = config.slideshowInterval;
+  config = newConfig;
+
+  if (oldInterval !== newConfig.slideshowInterval) {
+    broadcast('config-update', {
+      slideshowInterval: newConfig.slideshowInterval
+    });
+    log('info', 'Slideshow interval updated', {
+      from: oldInterval,
+      to: newConfig.slideshowInterval
+    });
+  }
 }
 
 const server = app.listen(config.port, () => {

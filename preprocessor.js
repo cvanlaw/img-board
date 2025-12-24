@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs').promises;
 const fsSync = require('fs');
 
-const config = require('./config.json');
+let config = require('./config.json');
 
 const log = (level, message, data = {}) => {
   console.log(JSON.stringify({
@@ -126,6 +126,53 @@ async function init() {
         path: config.preprocessing.rawImagePath
       });
     });
+
+  const configWatcher = chokidar.watch('./config.json', {
+    persistent: true,
+    ignoreInitial: true,
+    awaitWriteFinish: {
+      stabilityThreshold: 500,
+      pollInterval: 100
+    }
+  });
+
+  configWatcher.on('change', () => {
+    try {
+      log('info', 'Config file changed, reloading...');
+      delete require.cache[require.resolve('./config.json')];
+      const newConfig = require('./config.json');
+      updateSettings(newConfig);
+    } catch (err) {
+      log('error', 'Failed to reload config', { error: err.message });
+    }
+  });
+}
+
+function updateSettings(newConfig) {
+  const oldWidth = config.preprocessing.targetWidth;
+  const oldHeight = config.preprocessing.targetHeight;
+  const oldQuality = config.preprocessing.quality;
+
+  config = newConfig;
+
+  log('info', 'Preprocessor config reloaded', {
+    targetWidth: config.preprocessing.targetWidth,
+    targetHeight: config.preprocessing.targetHeight,
+    quality: config.preprocessing.quality
+  });
+
+  if (oldWidth !== newConfig.preprocessing.targetWidth ||
+      oldHeight !== newConfig.preprocessing.targetHeight ||
+      oldQuality !== newConfig.preprocessing.quality) {
+    log('info', 'Processing settings changed', {
+      from: { width: oldWidth, height: oldHeight, quality: oldQuality },
+      to: {
+        width: newConfig.preprocessing.targetWidth,
+        height: newConfig.preprocessing.targetHeight,
+        quality: newConfig.preprocessing.quality
+      }
+    });
+  }
 }
 
 init().catch(err => {

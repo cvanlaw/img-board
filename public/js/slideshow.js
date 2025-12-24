@@ -88,6 +88,15 @@ function connectSSE() {
     const { images } = JSON.parse(e.data);
     rebuildSlideshow(images);
   });
+
+  eventSource.addEventListener('config-update', (e) => {
+    const update = JSON.parse(e.data);
+
+    if (update.slideshowInterval) {
+      splide.options.interval = update.slideshowInterval;
+      console.log('Slideshow interval updated to', update.slideshowInterval);
+    }
+  });
 }
 
 init();
