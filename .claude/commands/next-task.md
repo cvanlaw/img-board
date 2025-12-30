@@ -9,12 +9,26 @@ model: sonnet
 
 ## Step 1: Scan Task Directory
 
-Read all task files in `docs/tasks/` directory (sorted numerically 01-11). For each task file, extract:
-- Task number and title
+Read all task files in `docs/tasks/` directory (sorted by task ID). For each task file, extract from **YAML frontmatter**:
+- `id` - Task number (integer)
+- `title` - Task title (string)
+- `depends_on` - Array of task IDs this task depends on (empty array = no dependencies)
+- `status` - Task status: pending, in_progress, or completed
+
+Also extract from markdown body:
 - Description (from ## Description section)
-- Dependencies (from ## Dependencies section)
 - Deliverables (from ## Deliverables section)
 - Acceptance Criteria (from ## Acceptance Criteria section)
+
+**Example frontmatter:**
+```yaml
+---
+id: 3
+title: Express Server Core
+depends_on: [1]
+status: pending
+---
+```
 
 ## Step 2: Check Project State
 
@@ -23,22 +37,24 @@ For each task's deliverables, check if the files/directories exist in the projec
 - Keep track of which tasks have all deliverables present (completed)
 - Keep track of which tasks have no deliverables present (not started)
 
-**Common deliverables to check:**
-- Task 01: `package.json`, `config.json`, `public/` directory, `.gitignore`
-- Task 02: `preprocessor.js`
-- Task 03: `server.js`
-- Task 04: `public/index.html`, `public/js/slideshow.js`, `public/css/style.css`
-- Task 11: `Dockerfile`, `docker-compose.yml`, `start.js`
+**Checking deliverables:**
+- Read the `## Deliverables` section from each task file
+- Use Glob or file existence checks to verify each deliverable
+- A task is complete when ALL its deliverables exist
 
 ## Step 3: Identify Next Task
 
-Find the first task (by number) where:
-1. **All dependencies are satisfied** (either has "None" as dependency, or all dependent tasks are completed)
-2. **Not yet completed** (deliverables don't exist)
+Find the first task (by `id`) where:
+1. **All dependencies satisfied** - Every ID in `depends_on` array refers to a completed task
+2. **Not yet completed** - `status` is "pending" and deliverables don't exist
 
-**Dependency parsing logic:**
-- If "## Dependencies" says "None" or "None - this is the foundation task" → task is always available
-- If it lists "Task XX: Description" → extract task number XX and check if that task is completed
+**Dependency logic:**
+- `depends_on: []` → task is always available (no dependencies)
+- `depends_on: [1, 3]` → task requires tasks with id 1 and 3 to be completed first
+
+A task is considered completed if:
+- Its `status` is "completed", OR
+- All files listed in its `## Deliverables` section exist in the project
 
 ## Step 4: Read Full Task Details
 
@@ -133,7 +149,8 @@ After implementation and testing are complete:
 
 ## Important Notes
 
-- Always start with Task 01 if no files exist yet
-- Some tasks can be done in parallel (e.g., Task 02 and 03 both depend only on 01)
-- Focus on the FIRST available task by number to maintain logical progression
+- Start with the lowest-numbered task that has `depends_on: []` (no dependencies)
+- Tasks with the same dependencies can be done in parallel
+- Focus on the FIRST available task by `id` to maintain logical progression
 - Be thorough in checking file existence to avoid recommending already-completed tasks
+- Task files use YAML frontmatter for metadata (`id`, `title`, `depends_on`, `status`)
