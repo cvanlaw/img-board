@@ -1,6 +1,6 @@
 # Deployment Design
 
-The application will be containerized and run in docker containers on an Ubuntu Server host (latest LTS). The containers should be built locally on the host and build and deployment should be orchestrated using Ansible.
+Simple shell-script based deployment for a single homelab host. The application runs in a Docker container with HTTPS enabled using certificates pulled from S3.
 
 ## Architecture Overview
 
@@ -8,7 +8,7 @@ The application will be containerized and run in docker containers on an Ubuntu 
 - Host OS: Ubuntu Server (latest LTS)
 - Network: Private network with internet access
 - Docker: Latest stable Docker Engine + Compose plugin
-- Orchestration: Ansible (roles-based architecture)
+- Orchestration: Shell scripts (no Ansible)
 
 **Application:**
 - Two-process Docker container (preprocessor + server)
@@ -21,333 +21,398 @@ The application will be containerized and run in docker containers on an Ubuntu 
 - Structure: `s3://{bucket}/{hostname}/cert.pem`, `key.pem`, `chain.pem`
 - Format: PEM-encoded ECDSA P-256 certificates
 - Renewal: Automatic via cert-getter Lambda (daily 3:00 AM UTC)
-- Updates: Manual re-deployment with `ansible-playbook --tags certificates`
+- Updates: Run `./scripts/update-certs.sh` then restart container
 
 **NAS Integration:**
 - Raw images: `/mnt/nas/photos/raw` → `/mnt/photos/raw:ro` (read-only)
 - Processed images: `/mnt/nas/photos/processed` → `/mnt/photos/processed`
 - Archive: `/mnt/nas/photos/archive` → `/mnt/photos/archive`
 
-## Implementation
-
-### Ansible Directory Structure
+## Directory Structure
 
 ```
-ansible/
-├── ansible.cfg                      # Ansible configuration
-├── inventory/
-│   └── production/
-│       ├── hosts.yml               # Host definitions
-│       └── group_vars/
-│           └── all.yml             # Configuration variables
-├── playbooks/
-│   ├── deploy.yml                  # Main deployment playbook
-│   └── rollback.yml                # Rollback playbook
-├── roles/
-│   ├── common/                     # System prerequisites
-│   │   ├── tasks/main.yml
-│   │   ├── handlers/main.yml
-│   │   └── defaults/main.yml
-│   ├── docker/                     # Docker installation
-│   │   ├── tasks/main.yml
-│   │   ├── handlers/main.yml
-│   │   └── defaults/main.yml
-│   ├── certificates/               # Certificate management
-│   │   ├── tasks/main.yml
-│   │   ├── handlers/main.yml
-│   │   └── defaults/main.yml
-│   ├── app-build/                  # Docker image build
-│   │   ├── tasks/main.yml
-│   │   ├── handlers/main.yml
-│   │   └── defaults/main.yml
-│   └── app-deploy/                 # Application deployment
-│       ├── tasks/main.yml
-│       ├── handlers/main.yml
-│       ├── defaults/main.yml
-│       └── templates/
-│           ├── config.json.j2
-│           └── docker-compose.yml.j2
-└── files/
+deploy/
+├── setup.sh                 # One-time host setup
+├── deploy.sh                # Build and deploy application
+├── update-certs.sh          # Pull certificates from S3
+├── config.example.json      # Template configuration
+├── docker-compose.yml       # Container configuration
+├── .env.example             # Environment variables template
+└── README.md                # Deployment instructions
 ```
 
-### Role Responsibilities
+On the host after deployment:
+```
+/opt/imgboard/
+├── source/                  # Application source code
+├── certs/                   # TLS certificates from S3
+│   ├── cert.pem
+│   ├── key.pem
+│   └── chain.pem
+├── config.json              # Application configuration
+└── docker-compose.yml       # Active compose file
+```
 
-#### Role 1: common
-**Purpose:** Prepare Ubuntu host with system prerequisites and AWS tooling
+## Scripts
 
-**Tasks:**
-- Create `imgboard` user (UID 1100, matches Docker container)
-- Install packages: `python3-pip`, `python3-boto3`, `unzip`, `curl`, `git`
-- Install AWS CLI v2
-- Create directory structure: `/opt/imgboard/{source,certs,bin}`, `/var/log/imgboard`
-- Verify S3 access
+### setup.sh - One-Time Host Setup
 
-**Variables:**
-- `app_user`: imgboard
-- `app_user_uid`: 1100
-- `app_base_dir`: /opt/imgboard
-- `aws_region`: us-east-1
+Run once on a fresh Ubuntu Server to prepare for deployment.
 
-**Note:** AWS credentials configured via environment variables (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`) or IAM instance profile.
+```bash
+#!/bin/bash
+set -euo pipefail
 
-#### Role 2: docker
-**Purpose:** Install Docker Engine and Compose plugin
+echo "=== img-board Host Setup ==="
 
-**Tasks:**
-- Remove old Docker versions
-- Add Docker GPG key and apt repository
-- Install Docker packages: `docker-ce`, `docker-ce-cli`, `containerd.io`, `docker-compose-plugin`
-- Configure `/etc/docker/daemon.json` with logging limits (10MB × 3 files)
-- Add `imgboard` user to `docker` group
-- Enable `docker.service`
+# Install Docker
+if ! command -v docker &> /dev/null; then
+    echo "Installing Docker..."
+    curl -fsSL https://get.docker.com | sh
+    sudo usermod -aG docker "$USER"
+    echo "Docker installed. Log out and back in for group changes."
+fi
 
-**Handler:** Restart Docker daemon on config changes
+# Install AWS CLI
+if ! command -v aws &> /dev/null; then
+    echo "Installing AWS CLI..."
+    sudo apt-get update && sudo apt-get install -y unzip
+    curl -fsSL "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o /tmp/awscliv2.zip
+    unzip -q /tmp/awscliv2.zip -d /tmp
+    sudo /tmp/aws/install
+    rm -rf /tmp/aws /tmp/awscliv2.zip
+fi
 
-#### Role 3: certificates
-**Purpose:** Download TLS certificates from S3
+# Create directories
+echo "Creating directories..."
+sudo mkdir -p /opt/imgboard/{source,certs}
+sudo chown -R "$USER:$USER" /opt/imgboard
 
-**Tasks:**
-- Download certificates from S3:
-  - `cert.pem` (mode 644)
-  - `key.pem` (mode 600)
-  - `chain.pem` (mode 644)
-- Set ownership: `imgboard:imgboard`
-- Verify certificate validity (warn if < 30 days)
+# Configure Docker logging
+echo "Configuring Docker logging..."
+sudo tee /etc/docker/daemon.json > /dev/null <<EOF
+{
+    "log-driver": "json-file",
+    "log-opts": {
+        "max-size": "10m",
+        "max-file": "3"
+    }
+}
+EOF
+sudo systemctl restart docker
 
-**Variables:**
-- `s3_cert_bucket`: S3 bucket name
-- `cert_hostname`: Hostname for certificate path
+echo "=== Setup Complete ==="
+echo "Next steps:"
+echo "  1. Configure AWS credentials: aws configure"
+echo "  2. Verify S3 access: aws s3 ls s3://your-cert-bucket/"
+echo "  3. Run ./deploy.sh to deploy the application"
+```
 
-**Handler:** Restart container when certificates change
+### deploy.sh - Build and Deploy
 
-**Module:** `amazon.aws.s3_object` for S3 downloads
+```bash
+#!/bin/bash
+set -euo pipefail
 
-#### Role 4: app-build
-**Purpose:** Build Docker image locally on host
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+APP_DIR="/opt/imgboard"
+REPO_URL="${REPO_URL:-https://github.com/cvanlaw/img-board.git}"
+BRANCH="${BRANCH:-main}"
 
-**Tasks:**
-- Clone/sync application source code
-- Build Docker image with timestamp tag
-- Tag image as `latest`
-- Prune old images (optional)
+echo "=== img-board Deployment ==="
 
-**Variables:**
-- `build_method`: git or sync
-- `app_git_repo`: GitHub repository URL
-- `app_docker_image`: imgboard/slideshow
+# Load environment
+if [[ -f "$SCRIPT_DIR/.env" ]]; then
+    source "$SCRIPT_DIR/.env"
+fi
 
-**Module:** `community.docker.docker_image`
+# Verify NAS mounts
+NAS_BASE="${NAS_MOUNT_BASE:-/mnt/nas/photos}"
+if [[ ! -d "$NAS_BASE" ]]; then
+    echo "ERROR: NAS mount not found at $NAS_BASE"
+    exit 1
+fi
 
-#### Role 5: app-deploy
-**Purpose:** Deploy containerized application with HTTPS enabled
+# Clone or update source
+if [[ -d "$APP_DIR/source/.git" ]]; then
+    echo "Updating source..."
+    git -C "$APP_DIR/source" fetch origin
+    git -C "$APP_DIR/source" reset --hard "origin/$BRANCH"
+else
+    echo "Cloning source..."
+    git clone --branch "$BRANCH" "$REPO_URL" "$APP_DIR/source"
+fi
 
-**Tasks:**
-- Generate `config.json` from template (HTTPS enabled)
-- Generate `docker-compose.yml` from template (certificate mounts)
-- Deploy container using Docker Compose
-- Wait for health check (5 retries × 10s)
-- Verify HTTPS endpoint
+# Update certificates
+"$SCRIPT_DIR/update-certs.sh"
 
-**Templates:**
-- `config.json.j2`: Application configuration with `https.enabled: true`
-- `docker-compose.yml.j2`: Docker Compose configuration with certificate volumes
+# Copy config if not exists
+if [[ ! -f "$APP_DIR/config.json" ]]; then
+    echo "Creating config.json from template..."
+    cp "$SCRIPT_DIR/config.example.json" "$APP_DIR/config.json"
+    echo "IMPORTANT: Edit /opt/imgboard/config.json before starting"
+fi
 
-**Variables:**
-- `app_https_enabled`: true
-- `app_port`: 3000
-- `nas_raw_path`: /mnt/nas/photos/raw
-- `nas_processed_path`: /mnt/nas/photos/processed
-- `nas_archive_path`: /mnt/nas/photos/archive
-- Application settings (slideshow interval, dimensions, quality, etc.)
+# Copy docker-compose.yml
+cp "$SCRIPT_DIR/docker-compose.yml" "$APP_DIR/docker-compose.yml"
 
-**Handler:** Restart container on config changes
+# Build and deploy
+echo "Building and starting container..."
+cd "$APP_DIR"
+docker compose down --remove-orphans 2>/dev/null || true
+docker compose up -d --build
 
-**Module:** `community.docker.docker_compose`
+# Wait for health check
+echo "Waiting for application..."
+for i in {1..30}; do
+    if curl -sf -k "https://localhost:3000/health" > /dev/null 2>&1; then
+        echo "=== Deployment Complete ==="
+        echo "Application running at https://$(hostname -I | awk '{print $1}'):3000"
+        exit 0
+    fi
+    sleep 2
+done
 
-### Deployment Playbook
+echo "WARNING: Health check failed. Check logs with: docker compose logs"
+exit 1
+```
 
-**File:** `playbooks/deploy.yml`
+### update-certs.sh - Pull Certificates from S3
+
+```bash
+#!/bin/bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+CERT_DIR="/opt/imgboard/certs"
+
+# Load environment
+if [[ -f "$SCRIPT_DIR/.env" ]]; then
+    source "$SCRIPT_DIR/.env"
+fi
+
+S3_BUCKET="${S3_CERT_BUCKET:?S3_CERT_BUCKET not set}"
+CERT_HOSTNAME="${CERT_HOSTNAME:?CERT_HOSTNAME not set}"
+
+echo "Downloading certificates from S3..."
+aws s3 cp "s3://$S3_BUCKET/$CERT_HOSTNAME/cert.pem" "$CERT_DIR/cert.pem"
+aws s3 cp "s3://$S3_BUCKET/$CERT_HOSTNAME/key.pem" "$CERT_DIR/key.pem"
+aws s3 cp "s3://$S3_BUCKET/$CERT_HOSTNAME/chain.pem" "$CERT_DIR/chain.pem"
+
+# Set permissions
+chmod 644 "$CERT_DIR/cert.pem" "$CERT_DIR/chain.pem"
+chmod 600 "$CERT_DIR/key.pem"
+
+# Verify certificate
+EXPIRY=$(openssl x509 -in "$CERT_DIR/cert.pem" -noout -enddate | cut -d= -f2)
+EXPIRY_EPOCH=$(date -d "$EXPIRY" +%s)
+NOW_EPOCH=$(date +%s)
+DAYS_LEFT=$(( (EXPIRY_EPOCH - NOW_EPOCH) / 86400 ))
+
+echo "Certificate valid until: $EXPIRY ($DAYS_LEFT days remaining)"
+if [[ $DAYS_LEFT -lt 30 ]]; then
+    echo "WARNING: Certificate expires in less than 30 days"
+fi
+```
+
+## Configuration Files
+
+### .env.example
+
+```bash
+# S3 Certificate Configuration
+S3_CERT_BUCKET=my-cert-bucket
+CERT_HOSTNAME=imgboard.example.com
+
+# Git Configuration (optional)
+REPO_URL=https://github.com/cvanlaw/img-board.git
+BRANCH=main
+
+# NAS Configuration
+NAS_MOUNT_BASE=/mnt/nas/photos
+```
+
+### docker-compose.yml
 
 ```yaml
-- name: Deploy img-board slideshow application
-  hosts: slideshow_servers
-  become: yes
-
-  pre_tasks:
-    - name: Verify NAS mounts accessible
-      stat:
-        path: "{{ nas_mount_base }}"
-      register: nas_mount
-      failed_when: not nas_mount.stat.exists
-
-  roles:
-    - role: common
-      tags: [common, setup]
-    - role: docker
-      tags: [docker, setup]
-    - role: certificates
-      tags: [certificates, certs]
-    - role: app-build
-      tags: [build, app]
-    - role: app-deploy
-      tags: [deploy, app]
+services:
+  imgboard:
+    build:
+      context: ./source
+      dockerfile: Dockerfile
+    container_name: imgboard
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      # Application config
+      - ./config.json:/app/config.json:ro
+      # TLS certificates
+      - ./certs/cert.pem:/certs/cert.pem:ro
+      - ./certs/key.pem:/certs/key.pem:ro
+      - ./certs/chain.pem:/certs/chain.pem:ro
+      # NAS mounts
+      - /mnt/nas/photos/raw:/mnt/photos/raw:ro
+      - /mnt/nas/photos/processed:/mnt/photos/processed
+      - /mnt/nas/photos/archive:/mnt/photos/archive
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "--no-check-certificate", "https://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
 ```
 
-### Inventory Configuration
+### config.example.json
 
-**File:** `inventory/production/hosts.yml`
-
-```yaml
-all:
-  children:
-    slideshow_servers:
-      hosts:
-        imgboard-prod-01:
-          ansible_host: 192.168.1.100
-          ansible_user: ubuntu
-          ansible_become: yes
-          cert_hostname: imgboard.example.com
+```json
+{
+  "preprocessor": {
+    "inputDir": "/mnt/photos/raw",
+    "outputDir": "/mnt/photos/processed",
+    "archiveDir": "/mnt/photos/archive",
+    "targetWidth": 1920,
+    "targetHeight": 1080,
+    "quality": 85,
+    "format": "webp",
+    "extensions": [".jpg", ".jpeg", ".png", ".webp", ".heic"]
+  },
+  "server": {
+    "port": 3000,
+    "imageDir": "/mnt/photos/processed"
+  },
+  "slideshow": {
+    "interval": 5000,
+    "transition": "fade",
+    "shuffle": true
+  },
+  "https": {
+    "enabled": true,
+    "certPath": "/certs/cert.pem",
+    "keyPath": "/certs/key.pem",
+    "chainPath": "/certs/chain.pem"
+  }
+}
 ```
 
-**File:** `inventory/production/group_vars/all.yml`
+## Deployment Workflows
 
-```yaml
-# S3 configuration
-s3_cert_bucket: my-cert-bucket-name
+### Initial Deployment
 
-# Git configuration
-app_git_repo: https://github.com/myorg/img-board.git
-
-# Application configuration
-app_slideshow_interval: 5000
-app_target_width: 1920
-app_target_height: 1080
-build_method: git
-nas_mount_base: /mnt/nas/photos
-```
-
-### Deployment Workflows
-
-**Initial Deployment:**
 ```bash
-cd ansible/
-ansible all -m ping
-ansible-playbook playbooks/deploy.yml
-curl -k https://192.168.1.100:3000/health
+# 1. Copy deploy scripts to host
+scp -r deploy/ user@host:/tmp/
+
+# 2. Run setup (one-time)
+ssh user@host
+cd /tmp/deploy
+./setup.sh
+
+# 3. Configure AWS credentials
+aws configure
+
+# 4. Create .env file
+cp .env.example .env
+nano .env  # Set S3_CERT_BUCKET and CERT_HOSTNAME
+
+# 5. Deploy
+./deploy.sh
+
+# 6. Edit application config if needed
+nano /opt/imgboard/config.json
+docker compose -f /opt/imgboard/docker-compose.yml restart
 ```
 
-**Update Application:**
+### Update Application
+
 ```bash
-ansible-playbook playbooks/deploy.yml --tags app
+cd /opt/imgboard
+git -C source pull
+docker compose up -d --build
 ```
 
-**Update Certificates:**
+Or re-run deploy script:
 ```bash
-ansible-playbook playbooks/deploy.yml --tags certificates
+./deploy.sh
 ```
 
-**Rollback:**
+### Update Certificates
+
 ```bash
-ansible-playbook playbooks/rollback.yml
-# Prompts for image tag to rollback to
+./update-certs.sh
+docker compose -f /opt/imgboard/docker-compose.yml restart
 ```
 
-### Certificate Management
+### Rollback
+
+```bash
+cd /opt/imgboard
+git -C source checkout v1.0.0  # or specific commit
+docker compose up -d --build
+```
+
+### View Logs
+
+```bash
+docker compose -f /opt/imgboard/docker-compose.yml logs -f
+```
+
+## Certificate Management
 
 **Renewal Process:**
-1. cert-getter Lambda renews certificates (daily 3:00 AM UTC)
-2. Certificates uploaded to S3: `s3://{bucket}/{hostname}/`
-3. Manual update on host: `ansible-playbook playbooks/deploy.yml --tags certificates`
+1. cert-getter Lambda renews certificates automatically (daily 3:00 AM UTC)
+2. New certificates uploaded to S3: `s3://{bucket}/{hostname}/`
+3. Pull to host: `./update-certs.sh`
+4. Restart container: `docker compose restart`
 
-**Certificate Files:**
-- `/opt/imgboard/certs/cert.pem` (644, owner imgboard:imgboard)
-- `/opt/imgboard/certs/key.pem` (600, owner imgboard:imgboard)
-- `/opt/imgboard/certs/chain.pem` (644, owner imgboard:imgboard)
+**Optional: Cron for automatic certificate updates**
+```bash
+# Check for new certs weekly and restart if changed
+0 4 * * 0 /opt/imgboard/deploy/update-certs.sh && docker compose -f /opt/imgboard/docker-compose.yml restart
+```
 
-**Container Mounts:**
-- `/opt/imgboard/certs/cert.pem:/certs/cert.pem:ro`
-- `/opt/imgboard/certs/key.pem:/certs/key.pem:ro`
-- `/opt/imgboard/certs/chain.pem:/certs/chain.pem:ro`
+## Security Considerations
 
-### Security Considerations
-
-1. **AWS Credentials:** Configured via environment variables or IAM instance profile (not stored in Ansible)
-2. **Certificate Permissions:** Private key restricted to 600, owned by app user
-3. **Container User:** Non-root execution (UID 1100)
+1. **AWS Credentials:** Configured via `aws configure` (stored in `~/.aws/`)
+2. **Certificate Permissions:** Private key restricted to 600
+3. **Container:** Runs as non-root user (defined in Dockerfile)
 4. **HTTPS Only:** Application configured for HTTPS-only operation
-5. **Docker Group:** App user has docker group membership for compose operations
+5. **Read-only mounts:** Raw images and certificates mounted read-only
 
-### File Permissions Strategy
+## Troubleshooting
 
-**Container User Mapping:**
-- Dockerfile USER: UID 1100
-- Docker Compose user: `1100:1100`
-- Host user: imgboard (UID 1100, GID 1100)
-- Certificate directory owned by UID 1100 for container accessibility
-
-**NAS Mounts:**
-- Raw directory: Read-only (`:ro`)
-- Processed directory: Read-write (preprocessor output)
-- Archive directory: Read-write (preprocessor archival)
-
-### Idempotency and Error Handling
-
-**Idempotent Design:**
-- Certificate downloads: Only restart if changed
-- Container deployment: `recreate: smart` (only on config change)
-- Docker build: Layer caching minimizes rebuild time
-- User creation: `state: present` with `create_home: yes`
-
-**Error Recovery:**
-- Failed cert download → Playbook fails, container runs with old certs
-- Failed Docker build → Deployment stops, previous container continues
-- Failed health check → Playbook fails, investigate logs, rollback available
-- Missing NAS mounts → Pre-task validation fails before deployment
-
-### Testing Strategy
-
-**Pre-deployment:**
+**Container won't start:**
 ```bash
-ansible-playbook playbooks/deploy.yml --syntax-check
-ansible-playbook playbooks/deploy.yml --check
-ansible-playbook playbooks/deploy.yml --limit imgboard-prod-01
+docker compose -f /opt/imgboard/docker-compose.yml logs
 ```
 
-**Post-deployment:**
+**Certificate errors:**
 ```bash
-ansible slideshow_servers -m shell -a "docker ps | grep image-slideshow" --become
-ansible slideshow_servers -m uri -a "url=https://{{ ansible_host }}:3000/health validate_certs=no"
-ansible slideshow_servers -m shell -a "openssl x509 -in /opt/imgboard/certs/cert.pem -noout -dates" --become
+openssl x509 -in /opt/imgboard/certs/cert.pem -noout -text
+openssl verify -CAfile /opt/imgboard/certs/chain.pem /opt/imgboard/certs/cert.pem
 ```
 
-### Critical Implementation Files
+**NAS mount issues:**
+```bash
+ls -la /mnt/nas/photos/
+mount | grep nas
+```
 
-**Application Files (Reference):**
-- `server.js:352-402` - HTTPS initialization logic
-- `docker-compose.yml:19-20` - Certificate volume mounts (currently commented)
-- `config.json:21-25` - HTTPS configuration structure
-- `Dockerfile` - USER directive and UID/GID
-- `start.js` - Signal handling for graceful shutdown
+**Health check failing:**
+```bash
+curl -vk https://localhost:3000/health
+```
 
-**Ansible Files (To Create):**
-- `ansible/ansible.cfg` - Ansible configuration
-- `ansible/inventory/production/hosts.yml` - Host inventory
-- `ansible/inventory/production/group_vars/all.yml` - Configuration variables
-- `ansible/roles/*/tasks/main.yml` - Role task definitions
-- `ansible/roles/*/handlers/main.yml` - Role handlers
-- `ansible/roles/*/defaults/main.yml` - Role default variables
-- `ansible/roles/app-deploy/templates/config.json.j2` - Config template
-- `ansible/roles/app-deploy/templates/docker-compose.yml.j2` - Compose template
-- `ansible/playbooks/deploy.yml` - Main deployment playbook
-- `ansible/playbooks/rollback.yml` - Rollback playbook
+## Files to Create
 
-### Expected Outcomes
-
-After deployment:
-- Application accessible at `https://{hostname}:3000`
-- Admin interface at `https://{hostname}:3000/admin`
-- Container auto-restarts on failure
-- Logs available: `docker compose logs -f`
-- Health check validates HTTPS endpoint
-- Certificates updatable via re-run of playbook with `--tags certificates`
+```
+deploy/
+├── setup.sh              # Host preparation script
+├── deploy.sh             # Deployment script
+├── update-certs.sh       # Certificate update script
+├── .env.example          # Environment template
+├── docker-compose.yml    # Container configuration
+├── config.example.json   # Application config template
+└── README.md             # Quick reference
+```
 
