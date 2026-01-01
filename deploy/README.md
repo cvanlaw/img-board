@@ -1,36 +1,3 @@
----
-id: 5
-title: Deployment Documentation
-depends_on: [1, 2, 3, 4]
-status: pending
----
-
-# Task 5: Deployment Documentation
-
-## Description
-
-Create comprehensive deployment documentation that covers initial setup, ongoing maintenance, certificate management, troubleshooting, and rollback procedures.
-
-## Deliverables
-
-- `deploy/README.md` - Complete deployment guide
-
-## Acceptance Criteria
-
-- [ ] Documents prerequisites (Ubuntu Server, NAS mounts, AWS credentials)
-- [ ] Documents initial deployment workflow step-by-step
-- [ ] Documents application update procedure
-- [ ] Documents certificate update procedure
-- [ ] Documents rollback procedure with git checkout
-- [ ] Documents log viewing commands
-- [ ] Includes troubleshooting section for common issues
-- [ ] Includes optional cron setup for automatic certificate updates
-
-## Implementation Details
-
-### README.md
-
-```markdown
 # img-board Deployment
 
 Shell-script based deployment for a single homelab host.
@@ -183,12 +150,3 @@ curl -vk https://localhost:3000/health
 ├── config.json       # Application configuration
 └── docker-compose.yml
 ```
-```
-
-## Testing Checklist
-
-- [ ] Follow README steps on a fresh Ubuntu Server VM
-- [ ] Verify all commands in README work as documented
-- [ ] Verify troubleshooting commands produce useful output
-- [ ] Verify rollback procedure works
-- [ ] Verify cron syntax is correct
