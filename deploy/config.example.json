@@ -1,27 +1,30 @@
 {
-  "preprocessor": {
-    "inputDir": "/mnt/photos/raw",
-    "outputDir": "/mnt/photos/processed",
-    "archiveDir": "/mnt/photos/archive",
+  "preprocessing": {
+    "enabled": true,
+    "rawImagePath": "/mnt/photos/raw",
+    "processedImagePath": "/mnt/photos/processed",
+    "inputExtensions": [".jpg", ".jpeg", ".png"],
+    "outputFormat": "webp",
+    "quality": 85,
     "targetWidth": 1920,
     "targetHeight": 1080,
-    "quality": 85,
-    "format": "webp",
-    "extensions": [".jpg", ".jpeg", ".png", ".webp", ".heic"]
+    "keepOriginals": true,
+    "archivePath": "/mnt/photos/archive"
   },
-  "server": {
-    "port": 3000,
-    "imageDir": "/mnt/photos/processed"
-  },
-  "slideshow": {
-    "interval": 5000,
-    "transition": "fade",
-    "shuffle": true
-  },
+  "imagePath": "/mnt/photos/processed",
+  "imageExtensions": [".webp"],
+  "slideshowInterval": 5000,
+  "randomOrder": true,
+  "reshuffleInterval": 3600000,
+  "recursive": false,
+  "port": 3000,
   "https": {
+    "enabled": false,
+    "cert": "/certs/cert.pem",
+    "key": "/certs/key.pem"
+  },
+  "admin": {
     "enabled": true,
-    "certPath": "/certs/cert.pem",
-    "keyPath": "/certs/key.pem",
-    "chainPath": "/certs/chain.pem"
+    "allowedIPs": []
   }
 }
