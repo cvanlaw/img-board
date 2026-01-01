@@ -1,0 +1,27 @@
+{
+  "preprocessor": {
+    "inputDir": "/mnt/photos/raw",
+    "outputDir": "/mnt/photos/processed",
+    "archiveDir": "/mnt/photos/archive",
+    "targetWidth": 1920,
+    "targetHeight": 1080,
+    "quality": 85,
+    "format": "webp",
+    "extensions": [".jpg", ".jpeg", ".png", ".webp", ".heic"]
+  },
+  "server": {
+    "port": 3000,
+    "imageDir": "/mnt/photos/processed"
+  },
+  "slideshow": {
+    "interval": 5000,
+    "transition": "fade",
+    "shuffle": true
+  },
+  "https": {
+    "enabled": true,
+    "certPath": "/certs/cert.pem",
+    "keyPath": "/certs/key.pem",
+    "chainPath": "/certs/chain.pem"
+  }
+}

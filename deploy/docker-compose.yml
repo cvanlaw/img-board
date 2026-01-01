@@ -1,0 +1,26 @@
+services:
+  imgboard:
+    build:
+      context: ./source
+      dockerfile: Dockerfile
+    container_name: imgboard
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    volumes:
+      # Application config
+      - ./config.json:/app/config.json:ro
+      # TLS certificates
+      - ./certs/cert.pem:/certs/cert.pem:ro
+      - ./certs/key.pem:/certs/key.pem:ro
+      - ./certs/chain.pem:/certs/chain.pem:ro
+      # NAS mounts
+      - /mnt/nas/photos/raw:/mnt/photos/raw:ro
+      - /mnt/nas/photos/processed:/mnt/photos/processed
+      - /mnt/nas/photos/archive:/mnt/photos/archive
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "--no-check-certificate", "https://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
