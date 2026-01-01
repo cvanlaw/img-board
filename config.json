@@ -1,17 +1,17 @@
 {
   "preprocessing": {
     "enabled": true,
-    "rawImagePath": "/mnt/nas/photos/raw",
-    "processedImagePath": "/mnt/nas/photos/processed",
+    "rawImagePath": "/mnt/photos/raw",
+    "processedImagePath": "/mnt/photos/processed",
     "inputExtensions": [".jpg", ".jpeg", ".png"],
     "outputFormat": "webp",
     "quality": 85,
     "targetWidth": 1920,
     "targetHeight": 1080,
     "keepOriginals": true,
-    "archivePath": "/mnt/nas/photos/archive"
+    "archivePath": "/mnt/photos/archive"
   },
-  "imagePath": "/mnt/nas/photos/processed",
+  "imagePath": "/mnt/photos/processed",
   "imageExtensions": [".webp"],
   "slideshowInterval": 5000,
   "randomOrder": true,
