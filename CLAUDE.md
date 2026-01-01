@@ -93,7 +93,9 @@ docker compose down             # Stop
 ## Documentation Structure
 
 - `docs/ARCHITECTURE.md` - Complete technical specification (1,572 lines)
-- `docs/tasks/` - 11 INVEST-compliant implementation tasks with acceptance criteria
+- `docs/DEPLOYMENT_DESIGN.md` - Shell-script deployment approach
+- `docs/NAS_SETUP.md` - NFS server requirements and configuration
+- `docs/tasks/` - INVEST-compliant implementation tasks with acceptance criteria
 - Each task includes code snippets, testing checklists, and implementation details
 
 ## Important Constraints

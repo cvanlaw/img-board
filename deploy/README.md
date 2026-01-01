@@ -4,9 +4,14 @@ Shell-script based deployment for a single homelab host.
 
 ## Prerequisites
 
-- Ubuntu Server (latest LTS)
-- NAS mounted at `/mnt/nas/photos/` with `raw/`, `processed/`, `archive/` subdirectories
+- Ubuntu Server 24.04 LTS
+- NFS server accessible on local network
+  - Export path: `/img-board`
+  - Subdirectories: `raw/`, `processed/`, `archive/`
+  - No authentication required (NFSv3 or NFSv4)
 - AWS credentials with S3 read access to certificate bucket
+  - Created via cert-getter Terraform (see `cert-getter/terraform/README.md`)
+  - IAM user: `cert-getter-cert-reader`
 - Network access to GitHub
 
 ## Initial Deployment
@@ -24,6 +29,14 @@ ssh user@host
 cd /tmp/deploy
 ./setup.sh
 ```
+
+The setup script will:
+1. Install Docker and AWS CLI
+2. Prompt for NAS server IP address (e.g., 192.168.0.11)
+3. Configure NFS mount at `/mnt/nas/photos`
+4. Create required directory structure
+
+**Important:** The NAS server IP is prompted during setup and stored in `/etc/fstab`. It is NOT committed to the repository for security.
 
 Log out and back in for Docker group changes to take effect.
 
@@ -127,9 +140,32 @@ openssl verify -CAfile /opt/imgboard/certs/chain.pem /opt/imgboard/certs/cert.pe
 
 ### NAS mount issues
 
+Check NFS server exports:
 ```bash
-ls -la /mnt/nas/photos/
+showmount -e 192.168.0.11
+```
+
+Check mount status:
+```bash
 mount | grep nas
+df -h | grep nas
+ls -la /mnt/nas/photos/
+```
+
+Manually test mount:
+```bash
+sudo mount -t nfs 192.168.0.11:/img-board /mnt/nas/photos
+```
+
+Check fstab entry:
+```bash
+grep nas /etc/fstab
+```
+
+View NFS logs:
+```bash
+sudo dmesg | grep -i nfs
+sudo journalctl -u nfs-client.target
 ```
 
 ### Health check failing
