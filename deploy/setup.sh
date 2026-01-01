@@ -24,7 +24,7 @@ fi
 # ===== NFS Mount Setup =====
 echo "=== NFS Mount Setup ==="
 
-NAS_EXPORT="/img-board"
+NAS_EXPORT="/volume1/img-board"
 MOUNT_POINT="/mnt/nas/photos"
 
 # Check if NFS mount already configured in fstab
