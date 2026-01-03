@@ -8,8 +8,8 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      # Application config
-      - ./config.json:/app/config.json:ro
+      # Application config (writable for admin interface)
+      - ./config.json:/app/config.json
       # TLS certificates
       - ./certs/cert.pem:/certs/cert.pem:ro
       - ./certs/key.pem:/certs/key.pem:ro
