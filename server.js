@@ -130,9 +130,7 @@ app.post('/api/admin/config', async (req, res) => {
       return res.status(400).json({ error: 'quality must be 1-100' });
     }
 
-    const tempFile = './config.json.tmp';
-    await fs.writeFile(tempFile, JSON.stringify(newConfig, null, 2));
-    await fs.rename(tempFile, './config.json');
+    await fs.writeFile('./config.json', JSON.stringify(newConfig, null, 2));
 
     const aspectChanged =
       req.body.preprocessing?.targetWidth !== undefined ||
@@ -146,7 +144,7 @@ app.post('/api/admin/config', async (req, res) => {
     res.json({ success: true, reprocessing: aspectChanged });
   } catch (err) {
     log('error', 'Config update failed', { error: err.message });
-    res.status(500).json({ error: 'Failed to update configuration' });
+    res.status(500).json({ error: 'Failed to update configuration', details: err.message });
   }
 });
 
