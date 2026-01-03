@@ -3,7 +3,7 @@ async function loadConfig() {
     const res = await fetch('/api/admin/config');
     const config = await res.json();
 
-    document.getElementById('interval').value = config.slideshowInterval / 1000;
+    document.getElementById('interval').value = config.slideshowInterval / 60000;
     document.getElementById('width').value = config.preprocessing.targetWidth;
     document.getElementById('height').value = config.preprocessing.targetHeight;
   } catch (err) {
@@ -26,14 +26,14 @@ async function updateStats() {
 }
 
 async function saveSlideshow() {
-  const intervalSeconds = parseFloat(document.getElementById('interval').value);
+  const intervalMinutes = parseFloat(document.getElementById('interval').value);
 
-  if (intervalSeconds < 1) {
-    showMessage('slideshow-message', 'Interval must be at least 1 second', 'error');
+  if (intervalMinutes < 0.1) {
+    showMessage('slideshow-message', 'Interval must be at least 0.1 minutes', 'error');
     return;
   }
 
-  const interval = Math.round(intervalSeconds * 1000);
+  const interval = Math.round(intervalMinutes * 60000);
 
   try {
     const res = await fetch('/api/admin/config', {
