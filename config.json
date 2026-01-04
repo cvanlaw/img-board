@@ -25,6 +25,7 @@
   },
   "admin": {
     "enabled": true,
-    "allowedIPs": []
+    "allowedIPs": [],
+    "trashPath": "/mnt/photos/trash"
   }
 }

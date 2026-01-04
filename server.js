@@ -284,7 +284,7 @@ app.get('/api/admin/reprocess-status', async (req, res) => {
   }
 });
 
-// Stub for getTrashFiles - will be implemented in Task 13
+// Helper function to get list of files in trash
 async function getTrashFiles() {
   try {
     const trashPath = config.admin?.trashPath;
@@ -296,6 +296,14 @@ async function getTrashFiles() {
     );
   } catch {
     return [];
+  }
+}
+
+// Helper function to ensure trash directory exists
+async function ensureTrashDir() {
+  const trashPath = config.admin?.trashPath;
+  if (trashPath) {
+    await fs.mkdir(trashPath, { recursive: true });
   }
 }
 
@@ -433,6 +441,99 @@ app.post('/api/admin/images/:filename/exclude', async (req, res) => {
   } catch (err) {
     log('error', 'Failed to toggle exclusion', { error: err.message });
     res.status(500).json({ error: 'Failed to toggle exclusion' });
+  }
+});
+
+// DELETE /api/admin/images/:filename - Soft delete (move to trash)
+app.delete('/api/admin/images/:filename', async (req, res) => {
+  try {
+    const filename = path.basename(req.params.filename);
+    const trashPath = config.admin?.trashPath;
+
+    if (!trashPath) {
+      return res.status(400).json({ error: 'Trash path not configured' });
+    }
+
+    const sourcePath = path.join(config.imagePath, filename);
+    const destPath = path.join(trashPath, filename);
+    const metaPath = path.join(trashPath, `${filename}.meta.json`);
+
+    // Verify source exists
+    try {
+      await fs.access(sourcePath);
+    } catch {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+
+    // Ensure trash directory exists
+    await ensureTrashDir();
+
+    // Move to trash
+    await fs.rename(sourcePath, destPath);
+
+    // Create metadata file
+    const meta = {
+      deletedAt: Date.now(),
+      originalPath: 'processed',
+    };
+    await fs.writeFile(metaPath, JSON.stringify(meta, null, 2));
+
+    // Remove from exclusion list if present
+    const excluded = await loadExcludedImages();
+    if (excluded.includes(filename)) {
+      await saveExcludedImages(excluded.filter((f) => f !== filename));
+    }
+
+    // Broadcast removal
+    broadcast('remove', { filename });
+
+    log('info', 'Image soft deleted', { filename });
+    res.json({ success: true, filename });
+  } catch (err) {
+    log('error', 'Failed to delete image', { error: err.message });
+    res.status(500).json({ error: 'Failed to delete image' });
+  }
+});
+
+// POST /api/admin/images/:filename/restore - Restore from trash
+app.post('/api/admin/images/:filename/restore', async (req, res) => {
+  try {
+    const filename = path.basename(req.params.filename);
+    const trashPath = config.admin?.trashPath;
+
+    if (!trashPath) {
+      return res.status(400).json({ error: 'Trash path not configured' });
+    }
+
+    const sourcePath = path.join(trashPath, filename);
+    const destPath = path.join(config.imagePath, filename);
+    const metaPath = path.join(trashPath, `${filename}.meta.json`);
+
+    // Verify source exists in trash
+    try {
+      await fs.access(sourcePath);
+    } catch {
+      return res.status(404).json({ error: 'Image not found in trash' });
+    }
+
+    // Move back to processed
+    await fs.rename(sourcePath, destPath);
+
+    // Delete metadata file
+    try {
+      await fs.unlink(metaPath);
+    } catch {
+      // Ignore if meta file doesn't exist
+    }
+
+    // Broadcast addition
+    broadcast('add', { filename });
+
+    log('info', 'Image restored', { filename });
+    res.json({ success: true, filename });
+  } catch (err) {
+    log('error', 'Failed to restore image', { error: err.message });
+    res.status(500).json({ error: 'Failed to restore image' });
   }
 });
 
