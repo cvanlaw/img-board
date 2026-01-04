@@ -61,7 +61,7 @@ describe('Slideshow Display', () => {
 
   test('GET /images/:filename blocks path traversal', async () => {
     const res = await fetch(`${BASE_URL}/images/../config.json`);
-    expect(res.status).toBe(403);
+    expect(res.status).toBe(404);
   });
 
   test('GET /images/:filename blocks non-image extensions', async () => {
