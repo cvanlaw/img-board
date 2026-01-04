@@ -537,6 +537,44 @@ app.post('/api/admin/images/:filename/restore', async (req, res) => {
   }
 });
 
+// DELETE /api/admin/images/:filename/permanent - Permanently delete from trash
+app.delete('/api/admin/images/:filename/permanent', async (req, res) => {
+  try {
+    const filename = path.basename(req.params.filename);
+    const trashPath = config.admin?.trashPath;
+
+    if (!trashPath) {
+      return res.status(400).json({ error: 'Trash path not configured' });
+    }
+
+    const filePath = path.join(trashPath, filename);
+    const metaPath = path.join(trashPath, `${filename}.meta.json`);
+
+    // Verify file exists in trash
+    try {
+      await fs.access(filePath);
+    } catch {
+      return res.status(404).json({ error: 'Image not found in trash' });
+    }
+
+    // Delete image file
+    await fs.unlink(filePath);
+
+    // Delete metadata file if exists
+    try {
+      await fs.unlink(metaPath);
+    } catch {
+      // Ignore if meta file doesn't exist
+    }
+
+    log('info', 'Image permanently deleted', { filename });
+    res.json({ success: true, filename });
+  } catch (err) {
+    log('error', 'Failed to permanently delete image', { error: err.message });
+    res.status(500).json({ error: 'Failed to permanently delete image' });
+  }
+});
+
 app.get('/api/images', async (req, res) => {
   try {
     const files = await fs.readdir(config.imagePath);
