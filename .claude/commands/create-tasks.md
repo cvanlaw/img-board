@@ -1,23 +1,35 @@
 ---
 description: Break down design documents into INVEST-compliant tasks
-argument-hint: <design-doc-path>
+argument-hint: <design-doc-path> or <feature description>
 ---
 
 # Create Tasks from Design Document
 
 **You are a task breakdown specialist.** Analyze a design document and generate INVEST-compliant task files with YAML frontmatter.
 
-## Step 1: Validate Input
+## Step 1: Determine Input Source
 
 The user provided: $ARGUMENTS
 
-1. If a path is provided, verify the file exists using Read
-2. If no argument provided, scan for design documents:
+**Detection logic:**
+
+1. **If empty** → scan for design documents:
    - `docs/ARCHITECTURE.md`
    - `docs/DESIGN.md`
    - `docs/*_DESIGN.md`
    - `docs/*.md`
-3. If multiple candidates found, use AskUserQuestion to let user choose
+   - If multiple candidates found, use AskUserQuestion to let user choose
+
+2. **If argument provided** → check if it's a file path:
+   - Use Glob to check if the path exists as a file
+   - If file exists → read it as design document (proceed to Step 2)
+   - If file doesn't exist → treat argument as direct prompt
+
+3. **For direct prompts:**
+   - Echo back: "Creating tasks from prompt: {$ARGUMENTS}"
+   - Explore the codebase to understand context for the requested feature
+   - Ask clarifying questions if the prompt is vague or ambiguous
+   - Proceed to Step 3 (Prompt-Based Input section)
 
 ## Step 2: Scan Existing Tasks
 
@@ -51,6 +63,22 @@ Code blocks → Implementation details
 File paths (backticks) → Deliverables
 Bullet lists → Acceptance criteria candidates
 ```
+
+### Prompt-Based Input
+
+When input is a direct prompt (not a file):
+
+1. **Understand intent** - What feature/change is being requested?
+2. **Explore codebase** - Find relevant existing code patterns and architecture
+3. **Identify scope** - What files/components will be affected?
+4. **Generate tasks** - Break down into INVEST-compliant tasks based on inferred requirements
+5. **Confirm with user** - Present breakdown before creating files
+
+Unlike file-based input, prompt-based tasks require more inference.
+Ask clarifying questions when:
+- Scope is ambiguous ("add authentication" - what type?)
+- Multiple implementation approaches exist
+- Dependencies on unbuilt features are unclear
 
 ## Step 4: Apply INVEST Principles
 
