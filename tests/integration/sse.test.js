@@ -1,4 +1,4 @@
-const EventSource = require('eventsource');
+const { EventSource } = require('eventsource');
 const {
   BASE_URL,
   setupTestDirectories,
