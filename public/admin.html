@@ -71,6 +71,31 @@
       <p id="upload-message" role="status" aria-live="polite"></p>
     </section>
 
+    <section class="card" aria-labelledby="gallery-heading">
+      <h2 id="gallery-heading">Manage Images</h2>
+
+      <div class="image-controls">
+        <input
+          type="text"
+          id="image-search"
+          placeholder="Search by filename..."
+          aria-label="Search images by filename"
+        />
+        <select id="image-filter" aria-label="Filter images">
+          <option value="all">All Images</option>
+          <option value="visible">Visible Only</option>
+          <option value="excluded">Excluded Only</option>
+          <option value="trash">Trash</option>
+        </select>
+      </div>
+
+      <div id="image-gallery" class="image-gallery" aria-live="polite"></div>
+
+      <div id="pagination" class="pagination" role="navigation" aria-label="Gallery pagination"></div>
+
+      <div id="gallery-message" class="message" style="display: none" role="status" aria-live="polite"></div>
+    </section>
+
     <section class="card" aria-labelledby="slideshow-heading">
       <h2 id="slideshow-heading">Slideshow Settings</h2>
       <div class="form-group">

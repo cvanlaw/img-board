@@ -516,6 +516,278 @@ document.addEventListener('visibilitychange', () => {
   }
 });
 
+// Image gallery state
+let allImages = [];
+let currentPage = 1;
+let currentFilter = 'all';
+let searchQuery = '';
+const imagesPerPage = 24;
+
+async function loadImages() {
+  const gallery = document.getElementById('image-gallery');
+  gallery.innerHTML = '<div class="gallery-loading">Loading images...</div>';
+
+  try {
+    const res = await fetch(
+      `/api/admin/images?filter=${currentFilter}&limit=1000`
+    );
+    const data = await res.json();
+    allImages = data.images;
+    renderGallery();
+  } catch (err) {
+    gallery.innerHTML = '<div class="empty-message">Failed to load images</div>';
+    showToast('Failed to load images: ' + err.message, 'error');
+  }
+}
+
+function renderGallery() {
+  const gallery = document.getElementById('image-gallery');
+  const isTrashView = currentFilter === 'trash';
+
+  // Apply search filter
+  let filtered = allImages;
+  if (searchQuery) {
+    filtered = allImages.filter((img) =>
+      img.filename.toLowerCase().includes(searchQuery)
+    );
+  }
+
+  if (filtered.length === 0) {
+    gallery.innerHTML = '<div class="empty-message">No images found</div>';
+    document.getElementById('pagination').innerHTML = '';
+    return;
+  }
+
+  // Paginate
+  const start = (currentPage - 1) * imagesPerPage;
+  const pageImages = filtered.slice(start, start + imagesPerPage);
+
+  gallery.innerHTML = pageImages
+    .map((img) => {
+      const classes = ['gallery-item'];
+      if (img.excluded) classes.push('excluded');
+      if (img.deleted) classes.push('deleted');
+
+      // Determine image source based on trash status
+      const imgSrc = img.deleted
+        ? `/api/admin/trash-image/${encodeURIComponent(img.filename)}`
+        : `/images/${encodeURIComponent(img.filename)}`;
+
+      // Different action buttons for trash vs normal view
+      let actionButtons;
+      if (isTrashView) {
+        actionButtons = `
+          <button class="btn-icon" onclick="restoreImage('${img.filename}')" title="Restore">
+            &#x21A9;
+          </button>
+          <button class="btn-icon btn-danger" onclick="permanentDeleteImage('${img.filename}')" title="Delete Permanently">
+            &#x2716;
+          </button>
+        `;
+      } else {
+        actionButtons = `
+          <button class="btn-icon" onclick="toggleExclusion('${img.filename}')" title="${img.excluded ? 'Include' : 'Exclude'}">
+            ${img.excluded ? '&#x1F441;' : '&#x1F6AB;'}
+          </button>
+          <button class="btn-icon btn-danger" onclick="deleteImage('${img.filename}')" title="Delete">
+            &#x1F5D1;
+          </button>
+        `;
+      }
+
+      return `
+        <div class="${classes.join(' ')}" data-filename="${img.filename}">
+          <img src="${imgSrc}" loading="lazy" alt="${img.filename}">
+          <div class="filename" title="${img.filename}">${img.filename}</div>
+          <div class="actions">
+            ${actionButtons}
+          </div>
+        </div>
+      `;
+    })
+    .join('');
+
+  renderPagination(filtered.length);
+}
+
+function renderPagination(total) {
+  const pages = Math.ceil(total / imagesPerPage);
+  const pagination = document.getElementById('pagination');
+
+  if (pages <= 1) {
+    pagination.innerHTML = '';
+    return;
+  }
+
+  let html = '';
+
+  // Previous button
+  if (currentPage > 1) {
+    html += `<button onclick="goToPage(${currentPage - 1})" aria-label="Previous page">&laquo;</button>`;
+  }
+
+  // Page numbers (show max 7 pages with ellipsis)
+  const maxVisible = 7;
+  let startPage = Math.max(1, currentPage - 3);
+  let endPage = Math.min(pages, startPage + maxVisible - 1);
+
+  if (endPage - startPage < maxVisible - 1) {
+    startPage = Math.max(1, endPage - maxVisible + 1);
+  }
+
+  if (startPage > 1) {
+    html += `<button onclick="goToPage(1)">1</button>`;
+    if (startPage > 2) {
+      html += `<span style="padding: 0.5rem;">...</span>`;
+    }
+  }
+
+  for (let i = startPage; i <= endPage; i++) {
+    html += `<button class="${i === currentPage ? 'active' : ''}" onclick="goToPage(${i})" ${i === currentPage ? 'aria-current="page"' : ''}>${i}</button>`;
+  }
+
+  if (endPage < pages) {
+    if (endPage < pages - 1) {
+      html += `<span style="padding: 0.5rem;">...</span>`;
+    }
+    html += `<button onclick="goToPage(${pages})">${pages}</button>`;
+  }
+
+  // Next button
+  if (currentPage < pages) {
+    html += `<button onclick="goToPage(${currentPage + 1})" aria-label="Next page">&raquo;</button>`;
+  }
+
+  pagination.innerHTML = html;
+}
+
+function goToPage(page) {
+  currentPage = page;
+  renderGallery();
+  // Scroll gallery into view
+  document.getElementById('image-gallery').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+async function toggleExclusion(filename) {
+  const img = allImages.find((i) => i.filename === filename);
+  if (!img) return;
+
+  try {
+    const res = await fetch(`/api/admin/images/${encodeURIComponent(filename)}/exclude`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ excluded: !img.excluded }),
+    });
+
+    if (res.ok) {
+      img.excluded = !img.excluded;
+      renderGallery();
+      showToast(img.excluded ? 'Image excluded from slideshow' : 'Image included in slideshow', 'success');
+    } else {
+      const err = await res.json();
+      showToast('Failed: ' + err.error, 'error');
+    }
+  } catch (err) {
+    showToast('Failed to toggle exclusion', 'error');
+  }
+}
+
+async function deleteImage(filename) {
+  const confirmed = await showConfirmDialog(
+    'Delete Image',
+    `Move "${filename}" to trash?`
+  );
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch(`/api/admin/images/${encodeURIComponent(filename)}`, {
+      method: 'DELETE',
+    });
+
+    if (res.ok) {
+      allImages = allImages.filter((i) => i.filename !== filename);
+      renderGallery();
+      showToast('Image moved to trash', 'success');
+      updateStats();
+    } else {
+      const err = await res.json();
+      showToast('Failed: ' + err.error, 'error');
+    }
+  } catch (err) {
+    showToast('Failed to delete image', 'error');
+  }
+}
+
+async function restoreImage(filename) {
+  try {
+    const res = await fetch(`/api/admin/images/${encodeURIComponent(filename)}/restore`, {
+      method: 'POST',
+    });
+
+    if (res.ok) {
+      allImages = allImages.filter((i) => i.filename !== filename);
+      renderGallery();
+      showToast('Image restored', 'success');
+      updateStats();
+    } else {
+      const err = await res.json();
+      showToast('Failed: ' + err.error, 'error');
+    }
+  } catch (err) {
+    showToast('Failed to restore image', 'error');
+  }
+}
+
+async function permanentDeleteImage(filename) {
+  const confirmed = await showConfirmDialog(
+    'Permanently Delete',
+    `Permanently delete "${filename}"? This cannot be undone!`
+  );
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch(`/api/admin/images/${encodeURIComponent(filename)}/permanent`, {
+      method: 'DELETE',
+    });
+
+    if (res.ok) {
+      allImages = allImages.filter((i) => i.filename !== filename);
+      renderGallery();
+      showToast('Image permanently deleted', 'success');
+    } else {
+      const err = await res.json();
+      showToast('Failed: ' + err.error, 'error');
+    }
+  } catch (err) {
+    showToast('Failed to permanently delete image', 'error');
+  }
+}
+
+// Initialize gallery event listeners
+document.addEventListener('DOMContentLoaded', () => {
+  const searchInput = document.getElementById('image-search');
+  const filterSelect = document.getElementById('image-filter');
+
+  if (searchInput) {
+    searchInput.addEventListener('input', (e) => {
+      searchQuery = e.target.value.toLowerCase();
+      currentPage = 1;
+      renderGallery();
+    });
+  }
+
+  if (filterSelect) {
+    filterSelect.addEventListener('change', (e) => {
+      currentFilter = e.target.value;
+      currentPage = 1;
+      loadImages();
+    });
+  }
+
+  // Load images on page load
+  loadImages();
+});
+
 loadConfig();
 updateStats();
 startPolling();

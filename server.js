@@ -740,6 +740,31 @@ app.post('/api/admin/images/bulk', async (req, res) => {
   }
 });
 
+// GET /api/admin/trash-image/:filename - Serve image from trash directory
+app.get('/api/admin/trash-image/:filename', (req, res) => {
+  const filename = path.basename(req.params.filename);
+  const trashPath = config.admin?.trashPath;
+
+  if (!trashPath) {
+    return res.status(400).send('Trash path not configured');
+  }
+
+  const ext = path.extname(filename).toLowerCase();
+  if (!config.imageExtensions.includes(ext)) {
+    log('warn', 'Blocked trash file with invalid extension', { filename, ext });
+    return res.status(403).send('Forbidden');
+  }
+
+  const imagePath = path.join(trashPath, filename);
+
+  res.sendFile(imagePath, (err) => {
+    if (err) {
+      log('error', 'Failed to serve trash image', { filename, error: err.message });
+      res.status(404).send('Not found');
+    }
+  });
+});
+
 app.get('/api/images', async (req, res) => {
   try {
     const files = await fs.readdir(config.imagePath);
