@@ -11,6 +11,23 @@ const { shuffleArray, deepMerge, ipMatches } = require('./lib/utils');
 let config = require('./config.json');
 const app = express();
 
+const EXCLUDED_FILE = './.excluded-images.json';
+
+async function loadExcludedImages() {
+  try {
+    const data = await fs.readFile(EXCLUDED_FILE, 'utf8');
+    return JSON.parse(data).excluded || [];
+  } catch {
+    return [];
+  }
+}
+
+async function saveExcludedImages(excluded) {
+  const data = JSON.stringify({ excluded, lastModified: Date.now() }, null, 2);
+  await fs.writeFile(EXCLUDED_FILE + '.tmp', data);
+  await fs.rename(EXCLUDED_FILE + '.tmp', EXCLUDED_FILE);
+}
+
 let imageList = [];
 let sseClients = [];
 let pendingChanges = { added: [], removed: [] };
@@ -248,15 +265,18 @@ app.get('/api/admin/reprocess-status', async (req, res) => {
 app.get('/api/images', async (req, res) => {
   try {
     const files = await fs.readdir(config.imagePath);
+    const excluded = await loadExcludedImages();
+
     let images = files.filter(f =>
-      config.imageExtensions.includes(path.extname(f).toLowerCase())
+      config.imageExtensions.includes(path.extname(f).toLowerCase()) &&
+      !excluded.includes(f)
     );
 
     if (config.randomOrder) {
       images = shuffleArray(images);
     }
 
-    log('info', 'Image list requested', { count: images.length });
+    log('info', 'Image list requested', { count: images.length, excluded: excluded.length });
     res.json(images);
   } catch (err) {
     log('error', 'Failed to read image directory', {
