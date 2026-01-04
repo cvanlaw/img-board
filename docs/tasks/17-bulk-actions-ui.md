@@ -32,27 +32,35 @@ Extend the image gallery with multi-select functionality and bulk action buttons
 ```html
 <div class="bulk-controls" id="bulk-controls" style="display: none;">
   <label>
-    <input type="checkbox" id="select-all" onchange="toggleSelectAll()">
+    <input type="checkbox" id="select-all" onchange="toggleSelectAll()" />
     Select All
   </label>
   <span id="selected-count">0 selected</span>
   <div class="bulk-buttons">
     <button onclick="bulkAction('exclude')">Exclude Selected</button>
     <button onclick="bulkAction('include')">Include Selected</button>
-    <button class="btn-danger" onclick="bulkAction('delete')">Delete Selected</button>
+    <button class="btn-danger" onclick="bulkAction('delete')">
+      Delete Selected
+    </button>
   </div>
 </div>
 
 <!-- For trash view, different buttons -->
-<div class="bulk-controls-trash" id="bulk-controls-trash" style="display: none;">
+<div
+  class="bulk-controls-trash"
+  id="bulk-controls-trash"
+  style="display: none;"
+>
   <label>
-    <input type="checkbox" id="select-all-trash" onchange="toggleSelectAll()">
+    <input type="checkbox" id="select-all-trash" onchange="toggleSelectAll()" />
     Select All
   </label>
   <span id="selected-count-trash">0 selected</span>
   <div class="bulk-buttons">
     <button onclick="bulkAction('restore')">Restore Selected</button>
-    <button class="btn-danger" onclick="bulkAction('permanent-delete')">Permanently Delete</button>
+    <button class="btn-danger" onclick="bulkAction('permanent-delete')">
+      Permanently Delete
+    </button>
   </div>
 </div>
 ```
@@ -101,7 +109,9 @@ let selectedImages = new Set();
 function renderGallery() {
   // ... existing filter logic ...
 
-  gallery.innerHTML = pageImages.map(img => `
+  gallery.innerHTML = pageImages
+    .map(
+      (img) => `
     <div class="gallery-item ${img.excluded ? 'excluded' : ''} ${selectedImages.has(img.filename) ? 'selected' : ''}"
          data-filename="${img.filename}">
       <input type="checkbox" class="checkbox"
@@ -118,7 +128,9 @@ function renderGallery() {
         </button>
       </div>
     </div>
-  `).join('');
+  `
+    )
+    .join('');
 
   renderPagination(filtered.length);
   updateBulkControls();
@@ -134,13 +146,15 @@ function toggleSelection(filename) {
 }
 
 function toggleSelectAll() {
-  const checkbox = document.getElementById('select-all') || document.getElementById('select-all-trash');
+  const checkbox =
+    document.getElementById('select-all') ||
+    document.getElementById('select-all-trash');
   const visibleFilenames = getVisibleFilenames();
 
   if (checkbox.checked) {
-    visibleFilenames.forEach(f => selectedImages.add(f));
+    visibleFilenames.forEach((f) => selectedImages.add(f));
   } else {
-    visibleFilenames.forEach(f => selectedImages.delete(f));
+    visibleFilenames.forEach((f) => selectedImages.delete(f));
   }
   renderGallery();
 }
@@ -148,11 +162,11 @@ function toggleSelectAll() {
 function getVisibleFilenames() {
   let filtered = allImages;
   if (searchQuery) {
-    filtered = allImages.filter(img =>
+    filtered = allImages.filter((img) =>
       img.filename.toLowerCase().includes(searchQuery)
     );
   }
-  return filtered.map(img => img.filename);
+  return filtered.map((img) => img.filename);
 }
 
 function updateBulkControls() {
@@ -165,7 +179,8 @@ function updateBulkControls() {
   if (isTrashView) {
     bulkControls.style.display = 'none';
     bulkControlsTrash.style.display = count > 0 ? 'flex' : 'none';
-    document.getElementById('selected-count-trash').textContent = `${count} selected`;
+    document.getElementById('selected-count-trash').textContent =
+      `${count} selected`;
   } else {
     bulkControlsTrash.style.display = 'none';
     bulkControls.style.display = count > 0 ? 'flex' : 'none';
@@ -178,16 +193,16 @@ async function bulkAction(action) {
   if (count === 0) return;
 
   const actionLabels = {
-    'exclude': 'exclude',
-    'include': 'include in slideshow',
-    'delete': 'move to trash',
-    'restore': 'restore from trash',
-    'permanent-delete': 'PERMANENTLY DELETE'
+    exclude: 'exclude',
+    include: 'include in slideshow',
+    delete: 'move to trash',
+    restore: 'restore from trash',
+    'permanent-delete': 'PERMANENTLY DELETE',
   };
 
   const confirmed = confirm(
     `${actionLabels[action].toUpperCase()} ${count} image(s)?\n\n` +
-    (action === 'permanent-delete' ? 'This cannot be undone!' : '')
+      (action === 'permanent-delete' ? 'This cannot be undone!' : '')
   );
 
   if (!confirmed) return;
@@ -198,13 +213,13 @@ async function bulkAction(action) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         action,
-        filenames: Array.from(selectedImages)
-      })
+        filenames: Array.from(selectedImages),
+      }),
     });
 
     const result = await res.json();
-    const successCount = result.results.filter(r => r.success).length;
-    const failCount = result.results.filter(r => !r.success).length;
+    const successCount = result.results.filter((r) => r.success).length;
+    const failCount = result.results.filter((r) => !r.success).length;
 
     // Clear selection
     selectedImages.clear();
@@ -214,9 +229,17 @@ async function bulkAction(action) {
 
     // Show result
     if (failCount === 0) {
-      showMessage('gallery-message', `${successCount} image(s) ${action}d successfully`, 'success');
+      showMessage(
+        'gallery-message',
+        `${successCount} image(s) ${action}d successfully`,
+        'success'
+      );
     } else {
-      showMessage('gallery-message', `${successCount} succeeded, ${failCount} failed`, 'warning');
+      showMessage(
+        'gallery-message',
+        `${successCount} succeeded, ${failCount} failed`,
+        'warning'
+      );
     }
   } catch (err) {
     showMessage('gallery-message', 'Bulk operation failed', 'error');

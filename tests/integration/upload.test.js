@@ -7,7 +7,7 @@ const {
   startContainer,
   stopContainer,
   waitForHealth,
-  listProcessedImages
+  listProcessedImages,
 } = require('./helpers');
 
 describe('Image Upload and Processing', () => {
@@ -27,11 +27,15 @@ describe('Image Upload and Processing', () => {
     const imageBuffer = await fs.readFile(imagePath);
 
     const formData = new FormData();
-    formData.append('images', new Blob([imageBuffer], { type: 'image/jpeg' }), 'upload-test.jpg');
+    formData.append(
+      'images',
+      new Blob([imageBuffer], { type: 'image/jpeg' }),
+      'upload-test.jpg'
+    );
 
     const res = await fetch(`${BASE_URL}/api/admin/upload`, {
       method: 'POST',
-      body: formData
+      body: formData,
     });
 
     expect(res.status).toBe(200);
@@ -41,11 +45,15 @@ describe('Image Upload and Processing', () => {
 
   test('POST /api/admin/upload rejects invalid file type', async () => {
     const formData = new FormData();
-    formData.append('images', new Blob(['not an image'], { type: 'text/plain' }), 'test.txt');
+    formData.append(
+      'images',
+      new Blob(['not an image'], { type: 'text/plain' }),
+      'test.txt'
+    );
 
     const res = await fetch(`${BASE_URL}/api/admin/upload`, {
       method: 'POST',
-      body: formData
+      body: formData,
     });
 
     expect(res.status).toBe(400);
@@ -56,14 +64,23 @@ describe('Image Upload and Processing', () => {
     const imageBuffer = await fs.readFile(imagePath);
 
     const formData = new FormData();
-    formData.append('images', new Blob([imageBuffer], { type: 'image/jpeg' }), 'process-test.jpg');
+    formData.append(
+      'images',
+      new Blob([imageBuffer], { type: 'image/jpeg' }),
+      'process-test.jpg'
+    );
 
-    await fetch(`${BASE_URL}/api/admin/upload`, { method: 'POST', body: formData });
+    await fetch(`${BASE_URL}/api/admin/upload`, {
+      method: 'POST',
+      body: formData,
+    });
 
-    await new Promise(r => setTimeout(r, 5000));
+    await new Promise((r) => setTimeout(r, 5000));
 
     const processed = await listProcessedImages();
-    const hasProcessed = processed.some(f => f.includes('process-test') && f.endsWith('.webp'));
+    const hasProcessed = processed.some(
+      (f) => f.includes('process-test') && f.endsWith('.webp')
+    );
     expect(hasProcessed).toBe(true);
   }, 15000);
 });

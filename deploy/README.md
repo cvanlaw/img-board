@@ -31,6 +31,7 @@ cd /tmp/deploy
 ```
 
 The setup script will:
+
 1. Install Docker and AWS CLI
 2. Prompt for NAS server IP address (e.g., 192.168.0.11)
 3. Configure NFS mount at `/mnt/nas/photos`
@@ -56,6 +57,7 @@ nano .env
 ```
 
 Required variables:
+
 - `S3_CERT_BUCKET` - S3 bucket containing certificates
 - `CERT_HOSTNAME` - Hostname folder in S3 bucket
 
@@ -141,11 +143,13 @@ openssl verify -CAfile /opt/imgboard/certs/chain.pem /opt/imgboard/certs/cert.pe
 ### NAS mount issues
 
 Check NFS server exports:
+
 ```bash
 showmount -e 192.168.0.11
 ```
 
 Check mount status:
+
 ```bash
 mount | grep nas
 df -h | grep nas
@@ -153,16 +157,19 @@ ls -la /mnt/nas/photos/
 ```
 
 Manually test mount:
+
 ```bash
 sudo mount -t nfs 192.168.0.11:/img-board /mnt/nas/photos
 ```
 
 Check fstab entry:
+
 ```bash
 grep nas /etc/fstab
 ```
 
 View NFS logs:
+
 ```bash
 sudo dmesg | grep -i nfs
 sudo journalctl -u nfs-client.target

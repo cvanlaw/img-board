@@ -34,6 +34,7 @@ The user provided: $ARGUMENTS
 ## Step 2: Scan Existing Tasks
 
 Check `docs/tasks/` directory for existing task files:
+
 - Use Glob to find all `*.md` files in `docs/tasks/`
 - Extract the highest `id` from YAML frontmatter
 - Next task ID = highest + 1 (or 1 if directory is empty)
@@ -44,18 +45,21 @@ Check `docs/tasks/` directory for existing task files:
 Read the full design document and identify task sources:
 
 **Primary sources (in order of preference):**
+
 1. `## Implementation` or `## Implementation Phases` - explicit task breakdown
 2. `## Scripts` or code block sections - each script/component is a task
 3. `## Directory Structure` - each major file/directory is a deliverable
 4. Major `###` headings that describe features or components
 
 **Extract from each section:**
+
 - Description text → task description
 - Code blocks → implementation details
 - File paths mentioned → deliverables
 - Numbered lists or checklists → acceptance criteria
 
 **Parsing patterns:**
+
 ```
 Section heading → Task title
 Section prose → Task description
@@ -76,6 +80,7 @@ When input is a direct prompt (not a file):
 
 Unlike file-based input, prompt-based tasks require more inference.
 Ask clarifying questions when:
+
 - Scope is ambiguous ("add authentication" - what type?)
 - Multiple implementation approaches exist
 - Dependencies on unbuilt features are unclear
@@ -84,16 +89,17 @@ Ask clarifying questions when:
 
 For each potential task, validate against INVEST:
 
-| Principle | Validation Rule | Action if Violated |
-|-----------|-----------------|-------------------|
-| **I**ndependent | No circular dependencies | Reorder or merge tasks |
-| **N**egotiable | Describes "what" not "how" | Rewrite description |
-| **V**aluable | Produces testable output | Add concrete deliverable |
-| **E**stimable | Clear, bounded scope | Split if too vague |
-| **S**mall | ≤10 acceptance criteria | Split into subtasks |
-| **T**estable | ≥3 acceptance criteria | Add more criteria |
+| Principle       | Validation Rule            | Action if Violated       |
+| --------------- | -------------------------- | ------------------------ |
+| **I**ndependent | No circular dependencies   | Reorder or merge tasks   |
+| **N**egotiable  | Describes "what" not "how" | Rewrite description      |
+| **V**aluable    | Produces testable output   | Add concrete deliverable |
+| **E**stimable   | Clear, bounded scope       | Split if too vague       |
+| **S**mall       | ≤10 acceptance criteria    | Split into subtasks      |
+| **T**estable    | ≥3 acceptance criteria     | Add more criteria        |
 
 **Splitting rules:**
+
 - If >10 acceptance criteria → split into multiple tasks
 - If >5 files affected → consider splitting by file group
 - If task has distinct phases → split by phase
@@ -107,6 +113,7 @@ Determine task dependencies:
 3. **Functional dependencies** - UI depends on API, API depends on core
 
 **Dependency notation:**
+
 - `depends_on: []` - foundation task, no dependencies
 - `depends_on: [1]` - depends on task 1
 - `depends_on: [1, 2]` - depends on tasks 1 AND 2
@@ -117,11 +124,11 @@ Determine task dependencies:
 
 For each task, create content using this exact format:
 
-```markdown
+````markdown
 ---
-id: {number}
-title: {Title in Title Case}
-depends_on: [{dependency_ids}]
+id: { number }
+title: { Title in Title Case }
+depends_on: [{ dependency_ids }]
 status: pending
 ---
 
@@ -149,6 +156,7 @@ status: pending
 ```{language}
 {Code snippet from design document}
 ```
+````
 
 {Additional implementation notes if needed.}
 
@@ -156,6 +164,7 @@ status: pending
 
 - [ ] {Manual verification step}
 - [ ] {Another verification step}
+
 ```
 
 **Naming convention:** `{id}-{kebab-case-title}.md`
@@ -168,41 +177,48 @@ status: pending
 Before writing files, present this summary to the user:
 
 ```
+
 ## Task Breakdown Summary
 
 **Source document:** {path}
 **Starting task ID:** {next_id}
 **Tasks to create:** {count}
 
-| ID | Title | Depends On | Key Deliverables |
-|----|-------|------------|------------------|
-| 01 | Setup Script | - | deploy/setup.sh |
-| 02 | Deploy Script | 01 | deploy/deploy.sh |
-| ... | ... | ... | ... |
+| ID  | Title         | Depends On | Key Deliverables |
+| --- | ------------- | ---------- | ---------------- |
+| 01  | Setup Script  | -          | deploy/setup.sh  |
+| 02  | Deploy Script | 01         | deploy/deploy.sh |
+| ... | ...           | ...        | ...              |
 
 ### Task Details
 
 **Task 01: Setup Script**
+
 - Deliverables: deploy/setup.sh
 - Acceptance Criteria: 5 items
 - Dependencies: None
 
 **Task 02: Deploy Script**
+
 - Deliverables: deploy/deploy.sh
 - Acceptance Criteria: 4 items
 - Dependencies: Task 01
 
 ...
+
 ```
 
 Then use AskUserQuestion:
 ```
+
 Ready to create these {count} task files in docs/tasks/?
 
 Options:
+
 - "Yes, create all tasks"
 - "Show me the full content first"
 - "Let me adjust the breakdown"
+
 ```
 
 ## Step 8: Write Task Files
@@ -216,6 +232,7 @@ After user confirmation:
 3. Report success:
 
 ```
+
 ## Tasks Created
 
 ✓ docs/tasks/01-setup-script.md
@@ -224,7 +241,8 @@ After user confirmation:
 ✓ docs/tasks/04-deployment-config-files.md
 
 Created 4 task files. Run /next-task to begin implementation.
-```
+
+````
 
 ## Important Guidelines
 
@@ -251,8 +269,9 @@ echo "=== img-board Host Setup ==="
 if ! command -v docker &> /dev/null; then
     curl -fsSL https://get.docker.com | sh
 fi
-```
-```
+````
+
+````
 
 **Output (task file):**
 ```markdown
@@ -294,7 +313,7 @@ echo "=== img-board Host Setup ==="
 if ! command -v docker &> /dev/null; then
     curl -fsSL https://get.docker.com | sh
 fi
-```
+````
 
 ## Testing Checklist
 
@@ -303,4 +322,7 @@ fi
 - [ ] Verify AWS CLI accessible: `aws --version`
 - [ ] Verify directories exist with correct permissions
 - [ ] Run script again to confirm idempotency
+
+```
+
 ```

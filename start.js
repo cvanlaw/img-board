@@ -5,7 +5,7 @@ console.log('Starting image slideshow services...');
 // Start preprocessor
 const preprocessor = spawn('node', ['preprocessor.js'], {
   stdio: 'inherit',
-  env: { ...process.env, PROCESS_NAME: 'preprocessor' }
+  env: { ...process.env, PROCESS_NAME: 'preprocessor' },
 });
 
 preprocessor.on('error', (err) => {
@@ -19,7 +19,7 @@ preprocessor.on('exit', (code) => {
 // Start server
 const server = spawn('node', ['server.js'], {
   stdio: 'inherit',
-  env: { ...process.env, PROCESS_NAME: 'server' }
+  env: { ...process.env, PROCESS_NAME: 'server' },
 });
 
 server.on('error', (err) => {

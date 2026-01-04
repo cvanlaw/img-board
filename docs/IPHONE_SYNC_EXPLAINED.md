@@ -19,11 +19,11 @@ Apple does not provide a documented REST API for iCloud Photos. Unlike Google Ph
 
 The paths that do exist:
 
-| Access Method | Availability | Limitation |
-|--------------|--------------|------------|
-| [PhotoKit](https://developer.apple.com/documentation/photokit) | iOS/macOS native apps only | Requires on-device code execution |
-| CloudKit Web API | Public databases only | Cannot access user photo libraries |
-| iCloud.com web interface | Browser sessions only | No programmatic API exposed |
+| Access Method                                                  | Availability               | Limitation                         |
+| -------------------------------------------------------------- | -------------------------- | ---------------------------------- |
+| [PhotoKit](https://developer.apple.com/documentation/photokit) | iOS/macOS native apps only | Requires on-device code execution  |
+| CloudKit Web API                                               | Public databases only      | Cannot access user photo libraries |
+| iCloud.com web interface                                       | Browser sessions only      | No programmatic API exposed        |
 
 ### Reverse-Engineered Access
 
@@ -115,6 +115,7 @@ The server reaches into iCloud to pull photos down.
 A one-way sync engine that downloads the entire iCloud Photos library (or specific folders) to the local filesystem.
 
 **Characteristics**:
+
 - Written in Node.js/TypeScript
 - Efficient differential sync for large libraries
 - Supports archiving (mark folders to skip in future syncs)
@@ -123,11 +124,13 @@ A one-way sync engine that downloads the entire iCloud Photos library (or specif
 - Caches trust tokens for autonomous operation
 
 **Album handling**:
+
 - Syncs full library into folder hierarchy
 - Can archive specific folders to exclude them
 - Shared Photo Library assets land in `_Shared-Photos` (flat)
 
 **Considerations**:
+
 - Requires Apple ID credentials stored on server
 - Uses undocumented APIs (may break)
 - Live Photos support pending
@@ -140,6 +143,7 @@ A one-way sync engine that downloads the entire iCloud Photos library (or specif
 A Python CLI tool focused on downloading and syncing photos from iCloud.
 
 **Characteristics**:
+
 - Three modes: copy (new only), sync (with delete), move (delete from iCloud)
 - `--watch-with-interval` for continuous monitoring
 - Live Photos and RAW support
@@ -147,22 +151,24 @@ A Python CLI tool focused on downloading and syncing photos from iCloud.
 - EXIF metadata updates
 
 **Album handling**:
+
 - Downloads all photos by default
 - `--recent` flag for recent photos only
 - No explicit album filtering in documentation
 
 **Considerations**:
+
 - Python dependency
 - Requires Apple ID credentials on server
 - 2FA handled via `--auth-only` preparation step
 
 #### Trade-offs: Server-Side Pull
 
-| Advantage | Disadvantage |
-|-----------|--------------|
-| Fully automated after setup | Credentials stored on server |
-| No action required on phone | Uses undocumented APIs |
-| Can sync entire library | Shared albums not supported |
+| Advantage                   | Disadvantage                      |
+| --------------------------- | --------------------------------- |
+| Fully automated after setup | Credentials stored on server      |
+| No action required on phone | Uses undocumented APIs            |
+| Can sync entire library     | Shared albums not supported       |
 | Efficient differential sync | Periodic re-authentication needed |
 
 ### B. Push-Based Approaches (Client-Initiated)
@@ -183,6 +189,7 @@ The phone pushes photos to the server.
 A third-party iOS app designed for photo transfer with extensive automation options.
 
 **Characteristics**:
+
 - Transfers to FTP, SFTP, SMB, WebDAV, cloud services
 - Shortcuts app integration for automation
 - Location-based triggers (sync when arriving home)
@@ -191,11 +198,13 @@ A third-party iOS app designed for photo transfer with extensive automation opti
 - Background transfer support
 
 **Album handling**:
+
 - Can filter by specific albums (standard or smart)
 - Transfers from Recents/All Photos or custom selection
 - Preserves folder structure option
 
 **Considerations**:
+
 - Requires iOS app purchase (~$7 one-time for premium)
 - Automation requires Shortcuts setup on device
 - Must configure destination (FTP/SMB/WebDAV to NAS)
@@ -206,27 +215,30 @@ A third-party iOS app designed for photo transfer with extensive automation opti
 The existing admin interface design (see `docs/PHOTO_UPLOAD_DESIGN.md`) supports direct file upload.
 
 **Characteristics**:
+
 - Upload via browser from any device
 - No app installation required
 - Immediate processing through existing pipeline
 
 **Album handling**:
+
 - Manual selection per upload
 - No automated album sync
 
 **Considerations**:
+
 - Requires manual action
 - Best for occasional additions, not continuous sync
 - Works from any device, not just iPhone
 
 #### Trade-offs: Push-Based
 
-| Advantage | Disadvantage |
-|-----------|--------------|
-| No credentials on server | Requires phone-side setup |
-| Uses official iOS APIs | Need network connectivity |
+| Advantage                 | Disadvantage                         |
+| ------------------------- | ------------------------------------ |
+| No credentials on server  | Requires phone-side setup            |
+| Uses official iOS APIs    | Need network connectivity            |
 | Album filtering supported | Manual or triggered (not continuous) |
-| Works with shared albums | Battery/data considerations |
+| Works with shared albums  | Battery/data considerations          |
 
 ### C. Hybrid Approaches
 
@@ -242,16 +254,19 @@ Combine multiple services to bridge gaps.
 ```
 
 **How it works**:
+
 1. Use iOS Shortcuts to export photos to an iCloud Drive folder
 2. Sync that iCloud Drive folder to server via standard tools (rclone, etc.)
 3. Server processes files through img-board pipeline
 
 **Characteristics**:
+
 - Decouples photo library access from server sync
 - iCloud Drive has documented sync tools
 - Can filter by album in Shortcuts before export
 
 **Considerations**:
+
 - Duplicates storage (Photos + Drive copy)
 - Two-step process
 - Export step needs triggering (manual or automated)
@@ -266,16 +281,19 @@ Combine multiple services to bridge gaps.
 ```
 
 **How it works**:
+
 1. macOS syncs with iCloud Photos natively
 2. PhotoKit/AppleScript accesses the local library
 3. Export to a folder synced to server
 
 **Characteristics**:
+
 - Uses official Apple APIs on Mac
 - Full album access including smart albums
 - Better shared album support (native Photos app can access)
 
 **Considerations**:
+
 - Requires always-on Mac
 - Not applicable to Docker-on-Linux deployments
 - Complex setup (Mac + sync mechanism)
@@ -292,12 +310,12 @@ The reverse-engineered APIs that power tools like icloud-photos-sync access your
 
 ### Current State
 
-| Tool | Shared Album Support |
-|------|---------------------|
-| icloud-photos-sync | No (Shared Photo Library yes, Shared Albums no) |
-| icloud_photos_downloader | Not documented |
-| PhotoSync app | Yes (accesses via iOS Photos framework) |
-| macOS Photos export | Yes (native access) |
+| Tool                     | Shared Album Support                            |
+| ------------------------ | ----------------------------------------------- |
+| icloud-photos-sync       | No (Shared Photo Library yes, Shared Albums no) |
+| icloud_photos_downloader | Not documented                                  |
+| PhotoSync app            | Yes (accesses via iOS Photos framework)         |
+| macOS Photos export      | Yes (native access)                             |
 
 ### Practical Workarounds
 
@@ -355,6 +373,7 @@ When running img-board in Docker (the standard deployment):
 - **Volume mounts** - Sync destination must be mounted into container
 
 The raw directory can be:
+
 - A bind mount to a NAS share (SMB/NFS)
 - A local directory synced externally (rclone, rsync)
 - A directory that receives uploads via the admin API
@@ -365,23 +384,25 @@ The right choice depends on priorities:
 
 ### Decision Matrix
 
-| Priority | Recommended Approach |
-|----------|---------------------|
+| Priority                   | Recommended Approach                           |
+| -------------------------- | ---------------------------------------------- |
 | Fully automated, hands-off | icloud-photos-sync or icloud_photos_downloader |
-| No credentials on server | PhotoSync app with automation |
-| Shared album support | PhotoSync app or macOS bridge |
-| Simplest setup | Web upload (manual) |
-| Album filtering | PhotoSync app or icloud-photos-sync |
-| Docker-only deployment | iCloud tools or PhotoSync to mounted volume |
+| No credentials on server   | PhotoSync app with automation                  |
+| Shared album support       | PhotoSync app or macOS bridge                  |
+| Simplest setup             | Web upload (manual)                            |
+| Album filtering            | PhotoSync app or icloud-photos-sync            |
+| Docker-only deployment     | iCloud tools or PhotoSync to mounted volume    |
 
 ### Security Considerations
 
 **Credentials on server** (iCloud tools):
+
 - Store in environment variables, not config files
 - Consider dedicated Apple ID for sync (not your primary)
 - Monitor for unauthorized access
 
 **Push-based** (PhotoSync, upload):
+
 - Server receives files but doesn't hold credentials
 - Authenticate uploads via IP filtering or tokens
 - Consider HTTPS for transfers
@@ -389,10 +410,12 @@ The right choice depends on priorities:
 ### Reliability Considerations
 
 **Most reliable**: Push-based approaches using official iOS APIs (PhotoSync)
+
 - Not dependent on reverse-engineered APIs
 - Survives Apple API changes
 
 **Least reliable**: Tools using undocumented iCloud APIs
+
 - May break when Apple updates services
 - Community maintenance varies
 
@@ -401,6 +424,7 @@ The right choice depends on priorities:
 iPhone photo sync to img-board has no perfect solution due to Apple's closed ecosystem. The approaches range from fully automated server-side sync (using reverse-engineered APIs) to client-initiated push (using official iOS capabilities).
 
 For most users:
+
 - **Want automation + accept trade-offs**: Use icloud-photos-sync with MFA token caching
 - **Want reliability + willing to set up**: Use PhotoSync app with Shortcuts automation
 - **Need shared albums**: Push-based approaches are the only option

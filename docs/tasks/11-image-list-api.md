@@ -54,15 +54,15 @@ app.get('/api/admin/images', adminIPFilter, async (req, res) => {
         excluded: excluded.includes(filename),
         deleted: false,
         size: stats.size,
-        modified: stats.mtimeMs
+        modified: stats.mtimeMs,
       });
     }
 
     // Apply filter
     if (filter === 'visible') {
-      images = images.filter(i => !i.excluded);
+      images = images.filter((i) => !i.excluded);
     } else if (filter === 'excluded') {
-      images = images.filter(i => i.excluded);
+      images = images.filter((i) => i.excluded);
     }
     // filter === 'trash' handled separately with trash files
 
@@ -74,12 +74,12 @@ app.get('/api/admin/images', adminIPFilter, async (req, res) => {
     res.json({
       images: paginatedImages,
       total,
-      visible: images.filter(i => !i.excluded).length,
+      visible: images.filter((i) => !i.excluded).length,
       excluded: excluded.length,
       trash: trashFiles.length,
       page,
       limit,
-      pages: Math.ceil(total / limit)
+      pages: Math.ceil(total / limit),
     });
   } catch (err) {
     log('error', 'Failed to list images', { error: err.message });

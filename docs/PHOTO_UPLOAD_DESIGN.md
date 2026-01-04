@@ -24,14 +24,14 @@ The preprocessor's existing `awaitWriteFinish` configuration (2-second stability
 
 ### Components
 
-| Component | File | Changes |
-|-----------|------|---------|
-| Upload endpoint | `server.js` | Add multer config + `/api/admin/upload` route |
-| Admin HTML | `public/admin.html` | Add upload card with drop zone |
-| Admin CSS | `public/admin.html` | Add drop zone and preview styles (inline) |
-| Admin JS | `public/js/admin.js` | Add upload logic and file handling |
-| Package deps | `package.json` | Add multer dependency |
-| Preprocessor | `preprocessor.js` | No changes (already handles new files) |
+| Component       | File                 | Changes                                       |
+| --------------- | -------------------- | --------------------------------------------- |
+| Upload endpoint | `server.js`          | Add multer config + `/api/admin/upload` route |
+| Admin HTML      | `public/admin.html`  | Add upload card with drop zone                |
+| Admin CSS       | `public/admin.html`  | Add drop zone and preview styles (inline)     |
+| Admin JS        | `public/js/admin.js` | Add upload logic and file handling            |
+| Package deps    | `package.json`       | Add multer dependency                         |
+| Preprocessor    | `preprocessor.js`    | No changes (already handles new files)        |
 
 ## Server-Side Implementation
 
@@ -57,10 +57,12 @@ const uploadStorage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     // Sanitize: remove path components, replace unsafe characters
-    const safeName = path.basename(file.originalname).replace(/[^a-zA-Z0-9._-]/g, '_');
+    const safeName = path
+      .basename(file.originalname)
+      .replace(/[^a-zA-Z0-9._-]/g, '_');
     const uniqueName = `${Date.now()}-${safeName}`;
     cb(null, uniqueName);
-  }
+  },
 });
 
 const uploadFilter = (req, file, cb) => {
@@ -82,8 +84,8 @@ const upload = multer({
   fileFilter: uploadFilter,
   limits: {
     fileSize: 50 * 1024 * 1024, // 50MB
-    files: 10
-  }
+    files: 10,
+  },
 });
 ```
 
@@ -94,21 +96,28 @@ const upload = multer({
 Protected by existing `adminIPFilter` middleware.
 
 Request:
+
 - Content-Type: `multipart/form-data`
 - Field: `images` (array of files)
 
 Response (success):
+
 ```json
 {
   "success": true,
   "uploaded": [
-    { "original": "photo.jpg", "saved": "1704384000000-photo.jpg", "size": 2048576 }
+    {
+      "original": "photo.jpg",
+      "saved": "1704384000000-photo.jpg",
+      "size": 2048576
+    }
   ],
   "message": "2 file(s) uploaded. Processing will begin shortly."
 }
 ```
 
 Response (error):
+
 ```json
 {
   "error": "File too large (max 50MB)"
@@ -150,9 +159,13 @@ New card after Image Statistics section:
 
   <div id="drop-zone" class="drop-zone">
     <p>Drag and drop images here, or click to select</p>
-    <input type="file" id="file-input" multiple
-           accept=".jpg,.jpeg,.png,image/jpeg,image/png"
-           style="display: none;" />
+    <input
+      type="file"
+      id="file-input"
+      multiple
+      accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+      style="display: none;"
+    />
   </div>
 
   <div id="upload-preview" class="upload-preview"></div>
@@ -178,7 +191,9 @@ New card after Image Statistics section:
   padding: 2rem;
   text-align: center;
   cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
   margin: 1rem 0;
 }
 
@@ -228,7 +243,7 @@ New card after Image Statistics section:
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0, 0, 0, 0.7);
   color: white;
   font-size: 10px;
   padding: 2px;
@@ -242,14 +257,14 @@ New card after Image Statistics section:
 
 Key functions to add to `admin.js`:
 
-| Function | Purpose |
-|----------|---------|
-| `handleFiles(fileList)` | Validate and queue files for upload |
-| `renderPreview()` | Display thumbnail grid with remove buttons |
-| `removeFile(index)` | Remove file from queue |
-| `clearUploadQueue()` | Clear all queued files |
-| `updateUploadButton()` | Update button text and disabled state |
-| `uploadFiles()` | Send files via XHR with progress tracking |
+| Function                | Purpose                                    |
+| ----------------------- | ------------------------------------------ |
+| `handleFiles(fileList)` | Validate and queue files for upload        |
+| `renderPreview()`       | Display thumbnail grid with remove buttons |
+| `removeFile(index)`     | Remove file from queue                     |
+| `clearUploadQueue()`    | Clear all queued files                     |
+| `updateUploadButton()`  | Update button text and disabled state      |
+| `uploadFiles()`         | Send files via XHR with progress tracking  |
 
 Progress tracking uses `XMLHttpRequest` instead of `fetch` for upload progress events:
 
@@ -264,14 +279,14 @@ xhr.upload.addEventListener('progress', (e) => {
 
 ## Security
 
-| Risk | Mitigation |
-|------|------------|
+| Risk                | Mitigation                                            |
+| ------------------- | ----------------------------------------------------- |
 | Unauthorized access | Existing `adminIPFilter` middleware on `/api/admin/*` |
-| Directory traversal | `path.basename()` + character sanitization |
-| Invalid file types | Double validation: MIME type + extension |
-| DoS via large files | 50MB per-file limit, 10 files per request |
-| Incomplete uploads | Preprocessor 2-second stability threshold |
-| Filename collisions | Timestamp prefix ensures uniqueness |
+| Directory traversal | `path.basename()` + character sanitization            |
+| Invalid file types  | Double validation: MIME type + extension              |
+| DoS via large files | 50MB per-file limit, 10 files per request             |
+| Incomplete uploads  | Preprocessor 2-second stability threshold             |
+| Filename collisions | Timestamp prefix ensures uniqueness                   |
 
 ## Testing Checklist
 

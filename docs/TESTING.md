@@ -128,7 +128,11 @@ describe('shuffleArray', () => {
 function deepMerge(target, source) {
   const result = { ...target };
   for (const key of Object.keys(source)) {
-    if (source[key] instanceof Object && !Array.isArray(source[key]) && key in target) {
+    if (
+      source[key] instanceof Object &&
+      !Array.isArray(source[key]) &&
+      key in target
+    ) {
       result[key] = deepMerge(target[key], source[key]);
     } else {
       result[key] = source[key];
@@ -235,7 +239,7 @@ services:
     build: ../..
     container_name: slideshow-test
     ports:
-      - "3001:3000"
+      - '3001:3000'
     volumes:
       - ./test-data/raw:/mnt/photos/raw
       - ./test-data/processed:/mnt/photos/processed
@@ -244,7 +248,7 @@ services:
     environment:
       - NODE_ENV=test
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
+      test: ['CMD', 'wget', '-q', '--spider', 'http://localhost:3000/health']
       interval: 2s
       timeout: 5s
       retries: 10
@@ -318,13 +322,13 @@ async function cleanupTestDirectories() {
 function startContainer() {
   execSync(`docker compose -f ${COMPOSE_FILE} up -d --build --wait`, {
     stdio: 'pipe',
-    timeout: 120000
+    timeout: 120000,
   });
 }
 
 function stopContainer() {
   execSync(`docker compose -f ${COMPOSE_FILE} down -v --remove-orphans`, {
-    stdio: 'pipe'
+    stdio: 'pipe',
   });
 }
 
@@ -334,7 +338,7 @@ async function waitForHealth(maxAttempts = 30) {
       const res = await fetch(`${BASE_URL}/health`);
       if (res.ok) return true;
     } catch {}
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise((r) => setTimeout(r, 1000));
   }
   throw new Error('Container did not become healthy');
 }
@@ -357,7 +361,7 @@ async function addProcessedImage(filename) {
 async function listProcessedImages() {
   try {
     const files = await fs.readdir(path.join(TEST_DATA_DIR, 'processed'));
-    return files.filter(f => f.endsWith('.webp'));
+    return files.filter((f) => f.endsWith('.webp'));
   } catch {
     return [];
   }
@@ -382,7 +386,7 @@ module.exports = {
   copyTestImage,
   addProcessedImage,
   listProcessedImages,
-  clearProcessedImages
+  clearProcessedImages,
 };
 ```
 
@@ -404,7 +408,7 @@ const {
   stopContainer,
   waitForHealth,
   addProcessedImage,
-  clearProcessedImages
+  clearProcessedImages,
 } = require('./helpers');
 
 describe('Slideshow Display', () => {
@@ -436,7 +440,7 @@ describe('Slideshow Display', () => {
     await addProcessedImage('photo2.webp');
 
     // Wait for file watcher to detect changes
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise((r) => setTimeout(r, 2000));
 
     const res = await fetch(`${BASE_URL}/api/images`);
     const images = await res.json();
@@ -448,7 +452,7 @@ describe('Slideshow Display', () => {
 
   test('GET /images/:filename serves image file', async () => {
     await addProcessedImage('serve-test.webp');
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise((r) => setTimeout(r, 2000));
 
     const res = await fetch(`${BASE_URL}/images/serve-test.webp`);
 
@@ -490,7 +494,7 @@ const {
   startContainer,
   stopContainer,
   waitForHealth,
-  addProcessedImage
+  addProcessedImage,
 } = require('./helpers');
 
 describe('Server-Sent Events', () => {
@@ -555,7 +559,7 @@ const {
   cleanupTestDirectories,
   startContainer,
   stopContainer,
-  waitForHealth
+  waitForHealth,
 } = require('./helpers');
 
 describe('Admin Configuration', () => {
@@ -586,7 +590,7 @@ describe('Admin Configuration', () => {
     const res = await fetch(`${BASE_URL}/api/admin/config`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slideshowInterval: newInterval })
+      body: JSON.stringify({ slideshowInterval: newInterval }),
     });
 
     expect(res.status).toBe(200);
@@ -601,7 +605,7 @@ describe('Admin Configuration', () => {
     const res = await fetch(`${BASE_URL}/api/admin/config`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slideshowInterval: 500 })
+      body: JSON.stringify({ slideshowInterval: 500 }),
     });
 
     expect(res.status).toBe(400);
@@ -617,7 +621,7 @@ describe('Admin Configuration', () => {
     await fetch(`${BASE_URL}/api/admin/config`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ preprocessing: { targetWidth: 1280 } })
+      body: JSON.stringify({ preprocessing: { targetWidth: 1280 } }),
     });
 
     // Verify quality unchanged
@@ -658,7 +662,7 @@ const {
   startContainer,
   stopContainer,
   waitForHealth,
-  listProcessedImages
+  listProcessedImages,
 } = require('./helpers');
 
 describe('Image Upload and Processing', () => {
@@ -678,11 +682,15 @@ describe('Image Upload and Processing', () => {
     const imageBuffer = await fs.readFile(imagePath);
 
     const formData = new FormData();
-    formData.append('images', new Blob([imageBuffer], { type: 'image/jpeg' }), 'upload-test.jpg');
+    formData.append(
+      'images',
+      new Blob([imageBuffer], { type: 'image/jpeg' }),
+      'upload-test.jpg'
+    );
 
     const res = await fetch(`${BASE_URL}/api/admin/upload`, {
       method: 'POST',
-      body: formData
+      body: formData,
     });
 
     expect(res.status).toBe(200);
@@ -693,11 +701,15 @@ describe('Image Upload and Processing', () => {
 
   test('POST /api/admin/upload rejects invalid file type', async () => {
     const formData = new FormData();
-    formData.append('images', new Blob(['not an image'], { type: 'text/plain' }), 'test.txt');
+    formData.append(
+      'images',
+      new Blob(['not an image'], { type: 'text/plain' }),
+      'test.txt'
+    );
 
     const res = await fetch(`${BASE_URL}/api/admin/upload`, {
       method: 'POST',
-      body: formData
+      body: formData,
     });
 
     expect(res.status).toBe(400);
@@ -708,18 +720,24 @@ describe('Image Upload and Processing', () => {
     const imageBuffer = await fs.readFile(imagePath);
 
     const formData = new FormData();
-    formData.append('images', new Blob([imageBuffer], { type: 'image/jpeg' }), 'process-test.jpg');
+    formData.append(
+      'images',
+      new Blob([imageBuffer], { type: 'image/jpeg' }),
+      'process-test.jpg'
+    );
 
     await fetch(`${BASE_URL}/api/admin/upload`, {
       method: 'POST',
-      body: formData
+      body: formData,
     });
 
     // Wait for preprocessing (file watcher + Sharp processing)
-    await new Promise(r => setTimeout(r, 5000));
+    await new Promise((r) => setTimeout(r, 5000));
 
     const processed = await listProcessedImages();
-    const hasProcessed = processed.some(f => f.includes('process-test') && f.endsWith('.webp'));
+    const hasProcessed = processed.some(
+      (f) => f.includes('process-test') && f.endsWith('.webp')
+    );
 
     expect(hasProcessed).toBe(true);
   }, 15000);
@@ -738,7 +756,7 @@ const {
   cleanupTestDirectories,
   startContainer,
   stopContainer,
-  waitForHealth
+  waitForHealth,
 } = require('./helpers');
 
 describe('Health Check', () => {
@@ -838,11 +856,13 @@ jobs:
 ### Idempotency
 
 Every test must produce the same result regardless of:
+
 - Previous test runs
 - Order of execution
 - Parallel execution (for unit tests)
 
 Achieved by:
+
 - Creating fresh directories in `beforeAll`
 - Cleaning up in `afterAll`
 - Resetting state in `beforeEach` when needed
@@ -850,6 +870,7 @@ Achieved by:
 ### Cleanup
 
 Tests clean up after themselves:
+
 - Docker containers stopped via `docker compose down`
 - Test data directories removed
 - Temporary files deleted
@@ -858,6 +879,7 @@ Tests clean up after themselves:
 ### Critical Journeys Focus
 
 Tests cover paths users actually take:
+
 1. **Viewing slideshow** - Core functionality
 2. **Real-time updates** - SSE reliability
 3. **Admin configuration** - Settings management
@@ -865,6 +887,7 @@ Tests cover paths users actually take:
 5. **Health monitoring** - Operational visibility
 
 Avoid testing:
+
 - Implementation details
 - Edge cases unlikely to occur
 - Framework behavior (Express routing, etc.)

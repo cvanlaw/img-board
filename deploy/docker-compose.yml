@@ -6,7 +6,7 @@ services:
     container_name: imgboard
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - '3000:3000'
     volumes:
       # Application config (writable for admin interface)
       - ./config.json:/app/config.json
@@ -19,7 +19,15 @@ services:
       - /mnt/nas/photos/processed:/mnt/photos/processed
       - /mnt/nas/photos/archive:/mnt/photos/archive
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "--no-check-certificate", "https://localhost:3000/health"]
+      test:
+        [
+          'CMD',
+          'wget',
+          '-q',
+          '--spider',
+          '--no-check-certificate',
+          'https://localhost:3000/health',
+        ]
       interval: 30s
       timeout: 10s
       retries: 3

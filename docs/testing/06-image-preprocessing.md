@@ -14,6 +14,7 @@ Tests automatic image detection, conversion, and processing.
 ## Test 6.1: JPG to WebP Conversion
 
 **Steps:**
+
 1. Copy a JPG file to raw directory:
    ```bash
    cp test-photo.jpg /mnt/photos/raw/
@@ -25,6 +26,7 @@ Tests automatic image detection, conversion, and processing.
    ```
 
 **Expected:**
+
 - New `test-photo.webp` file appears in processed directory
 - Original JPG handled per config (kept, archived, or deleted)
 - WebP file size smaller than original JPG
@@ -34,6 +36,7 @@ Tests automatic image detection, conversion, and processing.
 ## Test 6.2: PNG to WebP Conversion
 
 **Steps:**
+
 1. Copy a PNG file to raw directory:
    ```bash
    cp test-image.png /mnt/photos/raw/
@@ -42,6 +45,7 @@ Tests automatic image detection, conversion, and processing.
 3. Check processed directory
 
 **Expected:**
+
 - New `test-image.webp` file appears
 - PNG transparency may be flattened (verify visually)
 
@@ -50,6 +54,7 @@ Tests automatic image detection, conversion, and processing.
 ## Test 6.3: JPEG Extension (Alternate)
 
 **Steps:**
+
 1. Copy a file with `.jpeg` extension:
    ```bash
    cp photo.jpeg /mnt/photos/raw/
@@ -58,6 +63,7 @@ Tests automatic image detection, conversion, and processing.
 3. Verify output
 
 **Expected:**
+
 - Processed same as `.jpg` files
 - Output file is `.webp`
 
@@ -66,6 +72,7 @@ Tests automatic image detection, conversion, and processing.
 ## Test 6.4: Unsupported Format Ignored
 
 **Steps:**
+
 1. Copy a BMP or TXT file to raw directory:
    ```bash
    cp test.bmp /mnt/photos/raw/
@@ -75,6 +82,7 @@ Tests automatic image detection, conversion, and processing.
 4. Check application logs
 
 **Expected:**
+
 - No corresponding file in processed directory
 - Warning logged about unsupported format
 - No crash or error
@@ -84,6 +92,7 @@ Tests automatic image detection, conversion, and processing.
 ## Test 6.5: Aspect Ratio Preservation
 
 **Steps:**
+
 1. Use an image with non-16:9 ratio (e.g., 4:3 or 1:1)
 2. Copy to raw directory
 3. Wait for processing
@@ -94,6 +103,7 @@ Tests automatic image detection, conversion, and processing.
    ```
 
 **Expected:**
+
 - Aspect ratio preserved (not stretched/squashed)
 - Fits inside target dimensions (1920x1080 default)
 - May have letterboxing space if aspect differs
@@ -103,12 +113,14 @@ Tests automatic image detection, conversion, and processing.
 ## Test 6.6: No Enlargement of Small Images
 
 **Steps:**
+
 1. Use a small image (e.g., 640x480)
 2. Copy to raw directory
 3. Wait for processing
 4. Check output dimensions
 
 **Expected:**
+
 - Output NOT enlarged beyond original size
 - Image stays at 640x480 (or smaller)
 - `withoutEnlargement: true` honored
@@ -118,6 +130,7 @@ Tests automatic image detection, conversion, and processing.
 ## Test 6.7: Original File Handling - Keep
 
 **Steps:**
+
 1. Set config.json:
    ```json
    "keepOriginals": true,
@@ -127,6 +140,7 @@ Tests automatic image detection, conversion, and processing.
 3. Check raw directory
 
 **Expected:**
+
 - Original file remains in raw directory
 - Not deleted after processing
 
@@ -135,6 +149,7 @@ Tests automatic image detection, conversion, and processing.
 ## Test 6.8: Original File Handling - Archive
 
 **Steps:**
+
 1. Set config.json:
    ```json
    "keepOriginals": true,
@@ -145,6 +160,7 @@ Tests automatic image detection, conversion, and processing.
 4. Check archive directory
 
 **Expected:**
+
 - Original moved to archive directory
 - Not in raw directory anymore
 - Processed WebP in processed directory
@@ -154,6 +170,7 @@ Tests automatic image detection, conversion, and processing.
 ## Test 6.9: Original File Handling - Delete
 
 **Steps:**
+
 1. Set config.json:
    ```json
    "keepOriginals": false
@@ -162,6 +179,7 @@ Tests automatic image detection, conversion, and processing.
 3. Check raw directory
 
 **Expected:**
+
 - Original file deleted after processing
 - Only WebP exists in processed directory
 
@@ -170,12 +188,14 @@ Tests automatic image detection, conversion, and processing.
 ## Test 6.10: Batch Processing on Startup
 
 **Steps:**
+
 1. Stop application
 2. Add 5 new images to raw directory
 3. Start application
 4. Watch logs and processed directory
 
 **Expected:**
+
 - All 5 images processed on startup
 - `ignoreInitial: false` catches existing files
 - Processed directory has 5 new WebP files

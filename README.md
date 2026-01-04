@@ -67,6 +67,7 @@ Access the slideshow at `https://localhost:3000` and admin interface at `https:/
 ## Configuration
 
 All settings managed via `config.json`:
+
 - NAS mount paths (raw/processed/archive directories)
 - Image preprocessing (target dimensions, quality, format)
 - Slideshow timing and randomization
@@ -74,4 +75,3 @@ All settings managed via `config.json`:
 - Admin interface settings
 
 Changes to configuration apply automatically without restart via file-watching hot reload.
-

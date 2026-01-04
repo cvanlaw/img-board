@@ -1,5 +1,8 @@
 body {
-  font-family: system-ui, -apple-system, sans-serif;
+  font-family:
+    system-ui,
+    -apple-system,
+    sans-serif;
   max-width: 800px;
   margin: 2rem auto;
   padding: 0 1rem;
@@ -35,7 +38,9 @@ button {
   cursor: pointer;
   font-size: 0.9375rem;
 }
-button:hover { background: #0056b3; }
+button:hover {
+  background: #0056b3;
+}
 button:disabled {
   background: #6c757d !important;
   cursor: wait;
@@ -51,9 +56,16 @@ button:disabled {
 .btn-primary:hover {
   background-color: #0b5ed7;
 }
-.success { color: green; }
-.error { color: red; }
-.stat { font-size: 2rem; font-weight: bold; }
+.success {
+  color: green;
+}
+.error {
+  color: red;
+}
+.stat {
+  font-size: 2rem;
+  font-weight: bold;
+}
 .progress-bar {
   width: 100%;
   height: 28px;
@@ -88,7 +100,9 @@ button:disabled {
   padding: 2rem;
   text-align: center;
   cursor: pointer;
-  transition: border-color 0.2s, background 0.2s;
+  transition:
+    border-color 0.2s,
+    background 0.2s;
   margin: 1rem 0;
 }
 .drop-zone:hover,
@@ -132,7 +146,7 @@ button:disabled {
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0, 0, 0, 0.7);
   color: white;
   font-size: 10px;
   padding: 2px;
@@ -163,15 +177,15 @@ input:invalid:focus {
 }
 
 /* Accessibility: Non-color status indicators */
-[role="status"].success::before,
+[role='status'].success::before,
 .message.success::before {
-  content: "✓ ";
+  content: '✓ ';
   font-weight: bold;
 }
 
-[role="status"].error::before,
+[role='status'].error::before,
 .message.error::before {
-  content: "⚠ ";
+  content: '⚠ ';
   font-weight: bold;
 }
 
@@ -346,13 +360,25 @@ dialog p {
 }
 
 @keyframes slideIn {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 
 @keyframes slideOut {
-  from { transform: translateX(0); opacity: 1; }
-  to { transform: translateX(100%); opacity: 0; }
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
 }
 
 /* Help tooltips */

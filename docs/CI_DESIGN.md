@@ -5,6 +5,7 @@ GitHub Actions workflow for continuous integration.
 ## Triggers
 
 Runs on:
+
 - Push to `main` branch
 - Pull request creation and sync against `main`
 
@@ -44,6 +45,7 @@ docker compose build
 ```
 
 Catches:
+
 - Dockerfile syntax errors
 - Missing dependencies
 - Sharp/Vips compilation issues on Alpine

@@ -1,6 +1,7 @@
 # Image Slideshow Web App for DAKboard - Architecture & Implementation Guide
 
 ## Overview
+
 Standalone web app to display and rotate through images from NAS storage, embeddable in DAKboard via HTTPS iframe.
 
 **Setup**: Separate device runs web server with HTTPS/TLS cert → DAKboard embeds via iframe
@@ -18,6 +19,7 @@ Standalone web app to display and rotate through images from NAS storage, embedd
 ### Recommended: Node.js + Express + Chokidar
 
 **Why this stack**:
+
 - Excellent file watching with `chokidar` library (handles NFS/CIFS mounts reliably)
 - Fast, lightweight runtime
 - Real-time updates via Server-Sent Events (SSE)
@@ -28,11 +30,13 @@ Standalone web app to display and rotate through images from NAS storage, embedd
 **Auto-detection approach**: Chokidar watches directory, emits events on file changes, pushes to frontend via SSE
 
 **Key dependencies**:
+
 - Express (web server)
 - Chokidar (file system watching)
 - Splide.js (frontend slideshow library)
 
 **References**:
+
 - [Chokidar](https://github.com/paulmillr/chokidar) - Robust file watching
 - [Express](https://expressjs.com/) - Minimal web framework
 - [Splide](https://splidejs.com/) - Lightweight slider (29KB, no dependencies)
@@ -40,10 +44,12 @@ Standalone web app to display and rotate through images from NAS storage, embedd
 ### Alternative Options
 
 #### Option 2: Flask + Watchdog + SSE
+
 **Pros**: Python's `watchdog` library for file monitoring, familiar if you prefer Python
 **Cons**: Watchdog can be finicky with network mounts, slightly heavier than Node.js
 
 #### Option 3: Go + HTTP Server + fsnotify
+
 **Pros**: Single binary deployment, extremely lightweight, built-in HTTPS
 **Cons**: More verbose code, less ecosystem for frontend templates
 
@@ -131,7 +137,7 @@ async function processImage(inputPath, outputPath) {
     .webp({ quality: 85 })
     .resize(config.targetWidth, config.targetHeight, {
       fit: 'inside',
-      withoutEnlargement: true
+      withoutEnlargement: true,
     })
     .toFile(outputPath);
 }
@@ -151,12 +157,14 @@ Minimal - Sharp is fast (~100ms per image), preprocessing happens once per new f
 ## Backend: Express Server (`server.js`)
 
 ### Routes
+
 - `GET /` - Serve main slideshow page
 - `GET /api/images` - Return JSON list of current images
 - `GET /api/events` - SSE endpoint for real-time updates
 - `GET /images/:filename` - Serve image files from NAS directory
 
 ### Core Functionality
+
 - Initialize Chokidar to watch NAS mount path
 - Scan directory on startup for existing images
 - Filter by image extensions (jpg, png, webp, etc.)
@@ -173,7 +181,7 @@ const watcher = chokidar.watch(config.imagePath, {
   ignoreInitial: false,
   awaitWriteFinish: true, // wait for file write to complete
   usePolling: true, // ESSENTIAL for NFS/CIFS mounts
-  interval: 1000 // poll every 1 second
+  interval: 1000, // poll every 1 second
 });
 ```
 
@@ -225,6 +233,7 @@ const watcher = chokidar.watch(config.imagePath, {
 ### Configuration Options
 
 **Preprocessing**:
+
 - `preprocessing.enabled`: Enable/disable preprocessing worker
 - `preprocessing.rawImagePath`: Source directory with original images
 - `preprocessing.processedImagePath`: Destination for optimized images
@@ -237,6 +246,7 @@ const watcher = chokidar.watch(config.imagePath, {
 - `preprocessing.archivePath`: Directory to move originals (if keepOriginals is true)
 
 **Web Server**:
+
 - `imagePath`: Directory to serve images from (should match processedImagePath)
 - `imageExtensions`: Allowed file types for serving
 - `slideshowInterval`: Milliseconds between slides
@@ -247,6 +257,7 @@ const watcher = chokidar.watch(config.imagePath, {
 - `https`: HTTPS configuration
 
 **Admin Interface**:
+
 - `admin.enabled`: Enable/disable admin interface at /admin route
 - `admin.allowedIPs`: Array of IP addresses or CIDR ranges allowed to access admin (optional, for additional security)
 
@@ -256,21 +267,22 @@ const watcher = chokidar.watch(config.imagePath, {
 
 ```javascript
 const splide = new Splide('#slideshow', {
-  type: 'fade',           // or 'slide' for sliding transitions
+  type: 'fade', // or 'slide' for sliding transitions
   autoplay: true,
   interval: config.slideshowInterval,
   pauseOnHover: false,
   pauseOnFocus: false,
   rewind: true,
-  lazyLoad: 'nearby',     // Only load adjacent slides (critical for 200-1000 images)
-  preloadPages: 1,        // Preload 1 slide ahead
-  keyboard: true,         // For testing
-  arrows: false,          // Hide navigation arrows
-  pagination: false,      // Hide pagination dots
+  lazyLoad: 'nearby', // Only load adjacent slides (critical for 200-1000 images)
+  preloadPages: 1, // Preload 1 slide ahead
+  keyboard: true, // For testing
+  arrows: false, // Hide navigation arrows
+  pagination: false, // Hide pagination dots
 });
 ```
 
 **Key settings for large image sets (200-1000 images):**
+
 - `lazyLoad: 'nearby'` - Only loads images adjacent to current slide
 - `preloadPages: 1` - Minimal preloading to reduce memory
 - Combined with `loading="lazy"` on img elements for browser-level lazy loading
@@ -278,11 +290,13 @@ const splide = new Splide('#slideshow', {
 ### Image Loading & Real-time Updates
 
 **Initial load**:
+
 1. Fetch `/api/images` on page load (returns shuffled list if `randomOrder: true`)
 2. Build Splide slideshow with image list
 3. Connect to SSE for updates
 
 **Reshuffle behavior** (when `reshuffleInterval` is configured):
+
 1. Server maintains image list in memory
 2. New images detected by file watcher are queued (not immediately broadcast)
 3. On reshuffle timer (e.g., every hour):
@@ -292,11 +306,13 @@ const splide = new Splide('#slideshow', {
 4. Frontend rebuilds slideshow with new list
 
 **Why queue new images instead of immediate updates:**
+
 - Prevents jarring interruptions during viewing
 - Maintains shuffle consistency
 - Reduces SSE traffic with batch updates
 
 **SSE Event Handling**:
+
 ```javascript
 // Connect with auto-reconnection
 function connectSSE() {
@@ -327,7 +343,7 @@ function rebuildSlideshow(images) {
   }
 
   // Add new slides with lazy loading
-  images.forEach(filename => {
+  images.forEach((filename) => {
     const slide = document.createElement('li');
     slide.className = 'splide__slide';
     slide.dataset.filename = filename; // For removal tracking
@@ -368,6 +384,7 @@ Separate admin interface accessible at `/admin` route for managing slideshow set
 **Access**: No authentication required (designed for private network deployment), optional IP allowlist for additional security
 
 **Key Features**:
+
 - Real-time image count statistics (raw/processed directories)
 - Slideshow interval control with live updates
 - Preprocessing aspect ratio configuration
@@ -397,6 +414,7 @@ Chokidar detects config change in both processes
 ```
 
 **Why file-based IPC:**
+
 - Leverages existing Chokidar infrastructure in both processes
 - Configuration changes persist across restarts
 - No additional dependencies required
@@ -424,8 +442,8 @@ const configWatcher = chokidar.watch('./config.json', {
   ignoreInitial: true,
   awaitWriteFinish: {
     stabilityThreshold: 500,
-    pollInterval: 100
-  }
+    pollInterval: 100,
+  },
 });
 
 configWatcher.on('change', () => {
@@ -446,6 +464,7 @@ configWatcher.on('change', () => {
 ```
 
 **Live update timeline:**
+
 - Admin UI submits config change
 - Config.json written atomically (temp file → rename)
 - Chokidar detects change within ~1 second
@@ -462,7 +481,11 @@ Must deep merge to preserve existing nested properties:
 function deepMerge(target, source) {
   const result = { ...target };
   for (const key of Object.keys(source)) {
-    if (source[key] instanceof Object && !Array.isArray(source[key]) && key in target) {
+    if (
+      source[key] instanceof Object &&
+      !Array.isArray(source[key]) &&
+      key in target
+    ) {
       result[key] = deepMerge(target[key], source[key]);
     } else {
       result[key] = source[key];
@@ -473,12 +496,16 @@ function deepMerge(target, source) {
 
 // In POST /api/admin/config handler
 app.post('/api/admin/config', async (req, res) => {
-  const currentConfig = JSON.parse(await fs.promises.readFile('./config.json', 'utf8'));
+  const currentConfig = JSON.parse(
+    await fs.promises.readFile('./config.json', 'utf8')
+  );
   const newConfig = deepMerge(currentConfig, req.body);
 
   // Validate before writing
   if (newConfig.slideshowInterval < 1000) {
-    return res.status(400).json({ error: 'slideshowInterval must be >= 1000ms' });
+    return res
+      .status(400)
+      .json({ error: 'slideshowInterval must be >= 1000ms' });
   }
 
   // Atomic write to prevent corruption
@@ -504,6 +531,7 @@ app.post('/api/admin/config', async (req, res) => {
 When aspect ratio settings change, all existing images are reprocessed:
 
 **Trigger mechanism:**
+
 1. Admin API detects aspect ratio change in POST request
 2. Admin API creates `.reprocess-trigger` file
 3. Preprocessor's Chokidar watcher detects trigger file
@@ -518,7 +546,7 @@ When aspect ratio settings change, all existing images are reprocessed:
 ```javascript
 const reprocessWatcher = chokidar.watch('./.reprocess-trigger', {
   persistent: true,
-  ignoreInitial: false
+  ignoreInitial: false,
 });
 
 reprocessWatcher.on('add', async () => {
@@ -546,28 +574,34 @@ reprocessWatcher.on('add', async () => {
       }
 
       // Write progress for admin UI (include failure count)
-      await fs.promises.writeFile('./.reprocess-progress.json',
+      await fs.promises.writeFile(
+        './.reprocess-progress.json',
         JSON.stringify({
           completed,
           failed,
           total: files.length,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         })
       );
     }
 
     // Log summary
-    console.log(`Reprocessing complete: ${completed} succeeded, ${failed} failed`);
+    console.log(
+      `Reprocessing complete: ${completed} succeeded, ${failed} failed`
+    );
     if (errors.length > 0) {
-      console.log('Failed files:', errors.map(e => e.file).join(', '));
+      console.log('Failed files:', errors.map((e) => e.file).join(', '));
     }
-
   } catch (err) {
     console.error('Reprocessing failed:', err);
   } finally {
     // Always clean up trigger/progress files
-    try { await fs.promises.unlink('./.reprocess-trigger'); } catch {}
-    try { await fs.promises.unlink('./.reprocess-progress.json'); } catch {}
+    try {
+      await fs.promises.unlink('./.reprocess-trigger');
+    } catch {}
+    try {
+      await fs.promises.unlink('./.reprocess-progress.json');
+    } catch {}
   }
 });
 ```
@@ -577,7 +611,10 @@ reprocessWatcher.on('add', async () => {
 ```javascript
 app.post('/api/admin/reprocess', async (req, res) => {
   // Check if reprocessing already running
-  if (fs.existsSync('./.reprocess-trigger') || fs.existsSync('./.reprocess-progress.json')) {
+  if (
+    fs.existsSync('./.reprocess-trigger') ||
+    fs.existsSync('./.reprocess-progress.json')
+  ) {
     return res.status(409).json({ error: 'Reprocessing already in progress' });
   }
 
@@ -586,7 +623,8 @@ app.post('/api/admin/reprocess', async (req, res) => {
 
   res.json({
     status: 'triggered',
-    message: 'Reprocessing started. Use /api/admin/reprocess-status to monitor progress.'
+    message:
+      'Reprocessing started. Use /api/admin/reprocess-status to monitor progress.',
   });
 });
 ```
@@ -612,6 +650,7 @@ app.get('/api/admin/reprocess-status', async (req, res) => {
 **Frontend approach**: Vanilla JavaScript (no framework)
 
 **Why vanilla JS:**
+
 - No build step required
 - No dependencies to manage
 - Faster initial load
@@ -645,100 +684,116 @@ app.get('/api/admin/reprocess-status', async (req, res) => {
 ```html
 <!DOCTYPE html>
 <html>
-<head>
-  <title>Slideshow Admin</title>
-  <meta charset="utf-8">
-  <style>
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      max-width: 800px;
-      margin: 2rem auto;
-      padding: 0 1rem;
-    }
-    .card {
-      border: 1px solid #ddd;
-      border-radius: 4px;
-      padding: 1.5rem;
-      margin: 1rem 0;
-      background: #f9f9f9;
-    }
-    h2 { margin-top: 0; }
-    input {
-      padding: 0.5rem;
-      margin: 0.5rem 0;
-      width: 100%;
-      max-width: 300px;
-    }
-    button {
-      padding: 0.5rem 1rem;
-      margin: 0.5rem 0.5rem 0 0;
-      background: #007bff;
-      color: white;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-    }
-    button:hover { background: #0056b3; }
-    .success { color: green; }
-    .error { color: red; }
-    .stat { font-size: 2rem; font-weight: bold; }
-    .progress-bar {
-      width: 100%;
-      height: 20px;
-      background: #ddd;
-      border-radius: 4px;
-      overflow: hidden;
-      margin: 1rem 0;
-    }
-    .progress-fill {
-      height: 100%;
-      background: #28a745;
-      transition: width 0.3s;
-    }
-  </style>
-</head>
-<body>
-  <h1>Slideshow Admin</h1>
+  <head>
+    <title>Slideshow Admin</title>
+    <meta charset="utf-8" />
+    <style>
+      body {
+        font-family:
+          system-ui,
+          -apple-system,
+          sans-serif;
+        max-width: 800px;
+        margin: 2rem auto;
+        padding: 0 1rem;
+      }
+      .card {
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 1.5rem;
+        margin: 1rem 0;
+        background: #f9f9f9;
+      }
+      h2 {
+        margin-top: 0;
+      }
+      input {
+        padding: 0.5rem;
+        margin: 0.5rem 0;
+        width: 100%;
+        max-width: 300px;
+      }
+      button {
+        padding: 0.5rem 1rem;
+        margin: 0.5rem 0.5rem 0 0;
+        background: #007bff;
+        color: white;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #0056b3;
+      }
+      .success {
+        color: green;
+      }
+      .error {
+        color: red;
+      }
+      .stat {
+        font-size: 2rem;
+        font-weight: bold;
+      }
+      .progress-bar {
+        width: 100%;
+        height: 20px;
+        background: #ddd;
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 1rem 0;
+      }
+      .progress-fill {
+        height: 100%;
+        background: #28a745;
+        transition: width 0.3s;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Slideshow Admin</h1>
 
-  <div class="card">
-    <h2>Image Statistics</h2>
-    <p>Raw images: <span class="stat" id="raw-count">-</span></p>
-    <p>Processed images: <span class="stat" id="processed-count">-</span></p>
-    <p><small>Last updated: <span id="stats-timestamp">-</span></small></p>
-  </div>
-
-  <div class="card">
-    <h2>Slideshow Settings</h2>
-    <label>
-      Interval (milliseconds):
-      <input type="number" id="interval" min="1000" step="100" />
-    </label><br>
-    <button onclick="saveSlideshow()">Save Slideshow Settings</button>
-    <p id="slideshow-message"></p>
-  </div>
-
-  <div class="card">
-    <h2>Preprocessing Settings</h2>
-    <label>
-      Target Width (pixels):
-      <input type="number" id="width" min="1" />
-    </label><br>
-    <label>
-      Target Height (pixels):
-      <input type="number" id="height" min="1" />
-    </label><br>
-    <button onclick="savePreprocessing()">Save & Reprocess All Images</button>
-    <p id="preprocessing-message"></p>
-    <div id="progress-container" style="display: none;">
-      <div class="progress-bar">
-        <div class="progress-fill" id="progress-fill"></div>
-      </div>
-      <p id="progress-text">Processing: 0/0</p>
+    <div class="card">
+      <h2>Image Statistics</h2>
+      <p>Raw images: <span class="stat" id="raw-count">-</span></p>
+      <p>Processed images: <span class="stat" id="processed-count">-</span></p>
+      <p>
+        <small>Last updated: <span id="stats-timestamp">-</span></small>
+      </p>
     </div>
-  </div>
 
-  <script src="/js/admin.js"></script>
-</body>
+    <div class="card">
+      <h2>Slideshow Settings</h2>
+      <label>
+        Interval (milliseconds):
+        <input type="number" id="interval" min="1000" step="100" /> </label
+      ><br />
+      <button onclick="saveSlideshow()">Save Slideshow Settings</button>
+      <p id="slideshow-message"></p>
+    </div>
+
+    <div class="card">
+      <h2>Preprocessing Settings</h2>
+      <label>
+        Target Width (pixels):
+        <input type="number" id="width" min="1" /> </label
+      ><br />
+      <label>
+        Target Height (pixels):
+        <input type="number" id="height" min="1" /> </label
+      ><br />
+      <button onclick="savePreprocessing()">Save & Reprocess All Images</button>
+      <p id="preprocessing-message"></p>
+      <div id="progress-container" style="display: none;">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <p id="progress-text">Processing: 0/0</p>
+      </div>
+    </div>
+
+    <script src="/js/admin.js"></script>
+  </body>
 </html>
 ```
 
@@ -755,7 +810,11 @@ async function loadConfig() {
     document.getElementById('width').value = config.preprocessing.targetWidth;
     document.getElementById('height').value = config.preprocessing.targetHeight;
   } catch (err) {
-    showMessage('preprocessing-message', 'Error loading config: ' + err.message, 'error');
+    showMessage(
+      'preprocessing-message',
+      'Error loading config: ' + err.message,
+      'error'
+    );
   }
 }
 
@@ -767,8 +826,9 @@ async function updateStats() {
 
     document.getElementById('raw-count').textContent = stats.raw;
     document.getElementById('processed-count').textContent = stats.processed;
-    document.getElementById('stats-timestamp').textContent =
-      new Date(stats.timestamp).toLocaleTimeString();
+    document.getElementById('stats-timestamp').textContent = new Date(
+      stats.timestamp
+    ).toLocaleTimeString();
   } catch (err) {
     console.error('Error updating stats:', err);
   }
@@ -779,7 +839,11 @@ async function saveSlideshow() {
   const interval = parseInt(document.getElementById('interval').value);
 
   if (interval < 1000) {
-    showMessage('slideshow-message', 'Interval must be at least 1000ms', 'error');
+    showMessage(
+      'slideshow-message',
+      'Interval must be at least 1000ms',
+      'error'
+    );
     return;
   }
 
@@ -787,13 +851,15 @@ async function saveSlideshow() {
     const res = await fetch('/api/admin/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slideshowInterval: interval })
+      body: JSON.stringify({ slideshowInterval: interval }),
     });
 
     if (res.ok) {
-      showMessage('slideshow-message',
+      showMessage(
+        'slideshow-message',
         'Settings saved! Slideshow will update automatically within 1 second.',
-        'success');
+        'success'
+      );
     } else {
       const error = await res.json();
       showMessage('slideshow-message', 'Error: ' + error.error, 'error');
@@ -809,11 +875,19 @@ async function savePreprocessing() {
   const height = parseInt(document.getElementById('height').value);
 
   if (width < 1 || height < 1) {
-    showMessage('preprocessing-message', 'Width and height must be positive', 'error');
+    showMessage(
+      'preprocessing-message',
+      'Width and height must be positive',
+      'error'
+    );
     return;
   }
 
-  if (!confirm(`This will reprocess ALL images with new dimensions ${width}x${height}. Continue?`)) {
+  if (
+    !confirm(
+      `This will reprocess ALL images with new dimensions ${width}x${height}. Continue?`
+    )
+  ) {
     return;
   }
 
@@ -825,9 +899,9 @@ async function savePreprocessing() {
       body: JSON.stringify({
         preprocessing: {
           targetWidth: width,
-          targetHeight: height
-        }
-      })
+          targetHeight: height,
+        },
+      }),
     });
 
     if (!configRes.ok) {
@@ -839,17 +913,21 @@ async function savePreprocessing() {
     // Check if reprocessing was triggered
     const result = await configRes.json();
     if (result.reprocessing) {
-      showMessage('preprocessing-message',
+      showMessage(
+        'preprocessing-message',
         'Settings saved! Reprocessing started...',
-        'success');
+        'success'
+      );
 
       // Show progress bar
       document.getElementById('progress-container').style.display = 'block';
       monitorReprocessing();
     } else {
-      showMessage('preprocessing-message',
+      showMessage(
+        'preprocessing-message',
         'Settings saved (no changes detected)',
-        'success');
+        'success'
+      );
     }
   } catch (err) {
     showMessage('preprocessing-message', 'Error: ' + err.message, 'error');
@@ -918,6 +996,7 @@ Three files used for inter-process communication:
    - Deleted by preprocessor when reprocessing completes
 
 **Why file-based approach:**
+
 - No network communication required between processes
 - No external dependencies
 - Progress survives if admin UI disconnects
@@ -993,7 +1072,9 @@ function adminIPFilter(req, res, next) {
     return next();
   }
 
-  const isAllowed = allowedPatterns.some(pattern => ipMatches(clientIP, pattern));
+  const isAllowed = allowedPatterns.some((pattern) =>
+    ipMatches(clientIP, pattern)
+  );
 
   if (!isAllowed) {
     console.log(`Admin access denied for IP: ${clientIP}`);
@@ -1023,6 +1104,7 @@ app.use('/api/admin', adminIPFilter);
 ### NAS Mounting
 
 **NFS**:
+
 ```bash
 sudo mount -t nfs nas.local:/volume1/photos /mnt/nas/photos
 
@@ -1031,6 +1113,7 @@ nas.local:/volume1/photos /mnt/nas/photos nfs defaults 0 0
 ```
 
 **SMB/CIFS**:
+
 ```bash
 sudo mount -t cifs //nas.local/photos /mnt/nas/photos -o credentials=/etc/nas-creds
 
@@ -1043,6 +1126,7 @@ sudo mount -t cifs //nas.local/photos /mnt/nas/photos -o credentials=/etc/nas-cr
 For container-based deployment with NAS volume mount:
 
 **Dockerfile**:
+
 ```dockerfile
 FROM node:20-alpine
 
@@ -1065,6 +1149,7 @@ CMD ["node", "start.js"]
 ```
 
 **start.js** (runs both processes in container):
+
 ```javascript
 const { spawn } = require('child_process');
 
@@ -1083,13 +1168,14 @@ process.on('SIGTERM', () => {
 ```
 
 **docker-compose.yml**:
+
 ```yaml
 version: '3.8'
 services:
   slideshow:
     build: .
     ports:
-      - "3000:3000"
+      - '3000:3000'
     volumes:
       # NAS mount (read-only for raw, container manages processed)
       - /mnt/nas/photos/raw:/mnt/photos/raw:ro
@@ -1104,6 +1190,7 @@ services:
 ```
 
 **Notes**:
+
 - NAS directories should be mounted on the host before starting the container
 - For HEIC support, add `libheif-dev` to the Dockerfile: `RUN apk add --no-cache vips-dev libheif-dev`
 - Container restarts automatically on failure via Docker Compose `restart: unless-stopped` policy
@@ -1120,13 +1207,14 @@ const fs = require('fs');
 
 const options = {
   cert: fs.readFileSync(config.https.cert),
-  key: fs.readFileSync(config.https.key)
+  key: fs.readFileSync(config.https.key),
 };
 
 https.createServer(options, app).listen(443);
 ```
 
 **With Docker**, mount certificates as volumes:
+
 ```yaml
 volumes:
   - /path/to/cert.pem:/certs/cert.pem:ro
@@ -1134,6 +1222,7 @@ volumes:
 ```
 
 Then configure in config.json:
+
 ```json
 {
   "https": {
@@ -1175,6 +1264,7 @@ server {
 ### Phase 0: Preprocessing Worker (1-2 hours)
 
 1. Initialize Node.js project:
+
    ```bash
    mkdir image-slideshow && cd image-slideshow
    npm init -y
@@ -1308,6 +1398,7 @@ server {
 ## Testing Checklist
 
 **Preprocessing Worker**:
+
 - [ ] Preprocessor detects new images in raw directory
 - [ ] JPEG converts to WebP successfully
 - [ ] PNG converts to WebP successfully
@@ -1321,6 +1412,7 @@ server {
 - [ ] File watching works on NAS mount with polling
 
 **Web Server**:
+
 - [ ] Node.js server starts and serves homepage
 - [ ] API returns correct image list from processed directory
 - [ ] Images display and rotate automatically
@@ -1339,11 +1431,13 @@ server {
 - [ ] Chokidar polling works on NFS/CIFS mount
 
 **End-to-End**:
+
 - [ ] Add image to raw directory → appears in slideshow after processing
 - [ ] Both processes run simultaneously without conflict
 - [ ] System handles batch uploads (multiple images at once)
 
 **Admin Interface**:
+
 - [ ] Admin page loads at /admin route
 - [ ] Admin page displays current configuration correctly
 - [ ] Image statistics show correct counts (raw/processed)
@@ -1390,19 +1484,22 @@ Based on 2025 web performance standards:
 ## File Permissions
 
 **NAS Mount Permissions:**
+
 - **Raw directory**: Read-only for preprocessor (if not archiving originals)
 - **Processed directory**: Read-write for preprocessor, read-only for web server
 - **Archive directory**: Write for preprocessor
 
 **Docker volume permissions:**
+
 ```yaml
 volumes:
-  - /mnt/nas/photos/raw:/mnt/photos/raw:ro      # Read-only
-  - /mnt/nas/photos/processed:/mnt/photos/processed  # Read-write
+  - /mnt/nas/photos/raw:/mnt/photos/raw:ro # Read-only
+  - /mnt/nas/photos/processed:/mnt/photos/processed # Read-write
 ```
 
 **User mapping in Docker:**
 The container runs as node user (UID 1000). If NAS files have different ownership:
+
 ```dockerfile
 # In Dockerfile, or use Docker's --user flag
 USER 1000:1000
@@ -1413,14 +1510,17 @@ Or mount with specific UID/GID on the host.
 ## Logging
 
 **Log format** (JSON for structured logging):
+
 ```javascript
 const log = (level, message, data = {}) => {
-  console.log(JSON.stringify({
-    timestamp: new Date().toISOString(),
-    level,
-    message,
-    ...data
-  }));
+  console.log(
+    JSON.stringify({
+      timestamp: new Date().toISOString(),
+      level,
+      message,
+      ...data,
+    })
+  );
 };
 
 // Usage
@@ -1429,18 +1529,20 @@ log('error', 'Processing failed', { file: 'bad.jpg', error: err.message });
 ```
 
 **Docker logs:**
+
 - Logs go to stdout/stderr (captured by Docker)
 - View with: `docker logs slideshow` or `docker compose logs -f`
 - Follow logs in real-time: `docker compose logs -f`
 - Configure log rotation in Docker daemon or docker-compose:
+
 ```yaml
 services:
   slideshow:
     logging:
-      driver: "json-file"
+      driver: 'json-file'
       options:
-        max-size: "10m"
-        max-file: "3"
+        max-size: '10m'
+        max-file: '3'
 ```
 
 ## Process Startup Order
@@ -1451,17 +1553,19 @@ services:
 2. **Server** serves whatever is already in the processed directory
 
 **On fresh install:**
+
 - Preprocessor may take time to process existing images
 - Server shows empty slideshow until images are processed
 - This is expected behavior - no manual intervention needed
 
 **Health check endpoint** (optional):
+
 ```javascript
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
     images: imageList.length,
-    uptime: process.uptime()
+    uptime: process.uptime(),
   });
 });
 ```
@@ -1469,6 +1573,7 @@ app.get('/health', (req, res) => {
 ## Dependencies
 
 **package.json**:
+
 ```json
 {
   "name": "image-slideshow",
@@ -1490,6 +1595,7 @@ app.get('/health', (req, res) => {
 ```
 
 **Global dependencies** (on deployment server):
+
 - Docker and Docker Compose
 - nginx (optional, for HTTPS reverse proxy)
 
@@ -1532,6 +1638,7 @@ app.get('/health', (req, res) => {
 
 **Symptom**: Images added to raw directory don't get processed
 **Solution**:
+
 - Check container is running (`docker ps` or `docker compose ps`)
 - Verify `usePolling: true` in preprocessor's Chokidar config
 - Check file permissions on raw and processed directories
@@ -1547,6 +1654,7 @@ app.get('/health', (req, res) => {
 **Symptom**: HEIC/HEIF images fail to process or are skipped
 **Cause**: Sharp requires `libheif` for HEIC support, which is not installed by default.
 **Solution**:
+
 - **macOS**: `brew install libheif`
 - **Linux (Debian/Ubuntu)**: `apt-get install libheif-dev`
 - **Docker**: Add to Dockerfile: `RUN apt-get install -y libheif-dev`
@@ -1557,6 +1665,7 @@ app.get('/health', (req, res) => {
 ## Estimated Complexity
 
 **Development time**:
+
 - Phase 0 (Preprocessing worker): 1-2 hours
 - Phase 1 (Core): 1-2 hours
 - Phase 2 (File watching + SSE): 2-3 hours
@@ -1569,4 +1678,4 @@ app.get('/health', (req, res) => {
 
 ---
 
-*Last updated: December 2025*
+_Last updated: December 2025_

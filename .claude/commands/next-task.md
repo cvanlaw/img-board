@@ -12,6 +12,7 @@ argument-hint: [task-id]
 The user provided: $ARGUMENTS
 
 **If a task ID is specified** (e.g., "18", "task 18", "task-18"):
+
 1. Extract the numeric task ID from the argument
 2. Use Glob to find the task file: `docs/tasks/{id}-*.md` (e.g., `docs/tasks/18-*.md`)
 3. If found, skip to **Step 3.5: Validate Specified Task**
@@ -24,17 +25,20 @@ The user provided: $ARGUMENTS
 ## Step 1: Scan Task Directory
 
 Read all task files in `docs/tasks/` directory (sorted by task ID). For each task file, extract from **YAML frontmatter**:
+
 - `id` - Task number (integer)
 - `title` - Task title (string)
 - `depends_on` - Array of task IDs this task depends on (empty array = no dependencies)
 - `status` - Task status: pending, in_progress, or completed
 
 Also extract from markdown body:
+
 - Description (from ## Description section)
 - Deliverables (from ## Deliverables section)
 - Acceptance Criteria (from ## Acceptance Criteria section)
 
 **Example frontmatter:**
+
 ```yaml
 ---
 id: 3
@@ -47,11 +51,13 @@ status: pending
 ## Step 2: Check Project State
 
 For each task's deliverables, check if the files/directories exist in the project:
+
 - Use Glob or Bash to check for file existence
 - Keep track of which tasks have all deliverables present (completed)
 - Keep track of which tasks have no deliverables present (not started)
 
 **Checking deliverables:**
+
 - Read the `## Deliverables` section from each task file
 - Use Glob or file existence checks to verify each deliverable
 - A task is complete when ALL its deliverables exist
@@ -59,14 +65,17 @@ For each task's deliverables, check if the files/directories exist in the projec
 ## Step 3: Identify Next Task
 
 Find the first task (by `id`) where:
+
 1. **All dependencies satisfied** - Every ID in `depends_on` array refers to a completed task
 2. **Not yet completed** - `status` is "pending" and deliverables don't exist
 
 **Dependency logic:**
+
 - `depends_on: []` → task is always available (no dependencies)
 - `depends_on: [1, 3]` → task requires tasks with id 1 and 3 to be completed first
 
 A task is considered completed if:
+
 - Its `status` is "completed", OR
 - All files listed in its `## Deliverables` section exist in the project
 
@@ -88,6 +97,7 @@ If the user specified a task ID in Step 0:
 ## Step 4: Read Full Task Details
 
 Once you've identified the next task, read the complete markdown file for that task to get:
+
 - Full description
 - All implementation details
 - All acceptance criteria (for TodoWrite)
@@ -96,6 +106,7 @@ Once you've identified the next task, read the complete markdown file for that t
 ## Step 5: Create Implementation Plan
 
 Write to the plan file (`/Users/cvanlaw/.claude/plans/[plan-id].md`):
+
 - Task number and title
 - Brief summary of what needs to be done
 - List of files to create/modify
@@ -105,6 +116,7 @@ Write to the plan file (`/Users/cvanlaw/.claude/plans/[plan-id].md`):
 ## Step 6: Create Todo List
 
 Use the TodoWrite tool to create a checklist from the task's acceptance criteria:
+
 - Extract each checkbox item from "## Acceptance Criteria"
 - **ALWAYS append these cleanup todos at the end:**
   - "Run npm run test:unit - all tests must pass"
@@ -115,29 +127,56 @@ Use the TodoWrite tool to create a checklist from the task's acceptance criteria
 - Use clear, actionable descriptions
 
 Example:
+
 ```javascript
 TodoWrite({
   todos: [
-    { content: "npm install runs without errors", status: "pending", activeForm: "Running npm install" },
-    { content: "config.json contains all configuration options", status: "pending", activeForm: "Creating config.json" },
+    {
+      content: 'npm install runs without errors',
+      status: 'pending',
+      activeForm: 'Running npm install',
+    },
+    {
+      content: 'config.json contains all configuration options',
+      status: 'pending',
+      activeForm: 'Creating config.json',
+    },
     // 🔔 MANDATORY CLEANUP TODOS - ALWAYS INCLUDE:
-    { content: "Run npm run test:unit - all tests must pass", status: "pending", activeForm: "Running unit tests" },
-    { content: "Run npm run test:integration - all tests must pass", status: "pending", activeForm: "Running integration tests" },
-    { content: "Remove completed task file from docs/tasks/", status: "pending", activeForm: "Removing task file" },
-    { content: "Commit all changes using /ai-commit", status: "pending", activeForm: "Committing changes" }
-  ]
-})
+    {
+      content: 'Run npm run test:unit - all tests must pass',
+      status: 'pending',
+      activeForm: 'Running unit tests',
+    },
+    {
+      content: 'Run npm run test:integration - all tests must pass',
+      status: 'pending',
+      activeForm: 'Running integration tests',
+    },
+    {
+      content: 'Remove completed task file from docs/tasks/',
+      status: 'pending',
+      activeForm: 'Removing task file',
+    },
+    {
+      content: 'Commit all changes using /ai-commit',
+      status: 'pending',
+      activeForm: 'Committing changes',
+    },
+  ],
+});
 ```
 
 ## Step 7: Present Plan to User
 
 Show the user:
+
 1. **Task Identified**: "Task XX: [Title]"
 2. **Summary**: Brief description of what will be implemented
 3. **Files to Create**: List of deliverables
 4. **Key Points**: Any important implementation notes
 
 Then use AskUserQuestion to ask:
+
 ```
 "Ready to implement Task XX: [Description]?"
 
@@ -149,6 +188,7 @@ Options:
 ## Step 8: Exit Plan Mode & Begin Implementation
 
 After presenting the plan and getting user response:
+
 - Call ExitPlanMode
 - If user approved, begin implementation by creating the first file from the deliverables list
 
@@ -161,6 +201,7 @@ After presenting the plan and getting user response:
 After implementation and testing are complete:
 
 ### 9.1 Verify Implementation Success
+
 - All acceptance criteria from the todo list are marked "completed"
 - Run `npm run test:unit` - all unit tests must pass (blocking)
 - Run `npm run test:integration` - all integration tests must pass (blocking)
@@ -169,11 +210,13 @@ After implementation and testing are complete:
 **⚠️ Tests are blocking**: Do NOT proceed to step 9.2 until all tests pass. If tests fail, fix the issues first.
 
 ### 9.2 Remove Task Document
+
 - Delete the completed task file from `./docs/tasks/` directory
   - Example: `rm docs/tasks/06-admin-api.md` or use Bash tool
 - Verify the correct task file was removed (check task number matches what you just implemented)
 
 ### 9.3 Commit All Changes
+
 - Run `/ai-commit` to create commits for:
   - Implementation changes (all created/modified files)
   - Task document deletion from docs/tasks/

@@ -29,13 +29,13 @@ async function cleanupTestDirectories() {
 function startContainer() {
   execSync(`docker compose -f ${COMPOSE_FILE} up -d --build --wait`, {
     stdio: 'pipe',
-    timeout: 120000
+    timeout: 120000,
   });
 }
 
 function stopContainer() {
   execSync(`docker compose -f ${COMPOSE_FILE} down -v --remove-orphans`, {
-    stdio: 'pipe'
+    stdio: 'pipe',
   });
 }
 
@@ -45,7 +45,7 @@ async function waitForHealth(maxAttempts = 30) {
       const res = await fetch(`${BASE_URL}/health`);
       if (res.ok) return true;
     } catch {}
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise((r) => setTimeout(r, 1000));
   }
   throw new Error('Container did not become healthy');
 }
@@ -67,7 +67,7 @@ async function addProcessedImage(filename) {
 async function listProcessedImages() {
   try {
     const files = await fs.readdir(path.join(TEST_DATA_DIR, 'processed'));
-    return files.filter(f => f.endsWith('.webp'));
+    return files.filter((f) => f.endsWith('.webp'));
   } catch {
     return [];
   }
@@ -92,5 +92,5 @@ module.exports = {
   copyTestImage,
   addProcessedImage,
   listProcessedImages,
-  clearProcessedImages
+  clearProcessedImages,
 };

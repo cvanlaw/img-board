@@ -15,7 +15,7 @@ async function init() {
   const images = await res.json();
 
   const list = document.querySelector('.splide__list');
-  images.forEach(filename => {
+  images.forEach((filename) => {
     const li = document.createElement('li');
     li.className = 'splide__slide';
     li.dataset.filename = filename;
@@ -63,7 +63,7 @@ function rebuildSlideshow(images) {
   while (splide.length > 0) {
     splide.remove(0);
   }
-  images.forEach(filename => addSlide(filename));
+  images.forEach((filename) => addSlide(filename));
 }
 
 function connectSSE() {

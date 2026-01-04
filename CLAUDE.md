@@ -7,6 +7,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 Image slideshow web application for DAKboard that displays images from NAS storage via HTTPS iframe. The system automatically detects new images without restart using file watching and real-time SSE updates.
 
 **Critical Requirements:**
+
 - Auto-detection of new files without restart (Chokidar with `usePolling: true` for NFS/CIFS mounts)
 - HTTPS support for DAKboard iframe embedding
 - NAS integration via network-mounted directories
@@ -29,11 +30,13 @@ Two-process system running in Docker container:
    - Provides admin API for live configuration changes
 
 **Shared Utilities** (`lib/utils.js`):
+
 - `shuffleArray()` - Fisher-Yates shuffle for image randomization
 - `deepMerge()` - Recursive merge for partial config updates
 - `ipMatches()` - IP pattern matching for admin access control
 
 **File-Based IPC:**
+
 - `config.json` - Shared configuration watched by both processes for hot reload
 - `.reprocess-trigger` - Signals batch reprocessing (created by admin API, consumed by preprocessor)
 - `.reprocess-progress.json` - Tracks reprocessing progress for admin UI
@@ -41,20 +44,24 @@ Two-process system running in Docker container:
 ## Key Technical Decisions
 
 **File Watching:**
+
 - MUST use `usePolling: true` in Chokidar config for NFS/CIFS compatibility
 - Standard file system events don't work reliably over network mounts
 
 **Image Processing:**
+
 - WebP format for 25-35% size reduction vs JPEG
 - `fit: 'inside'` to preserve aspect ratio during resize
 - Process images once, serve many (preprocessing is separate from serving)
 
 **Configuration Hot Reload:**
+
 - Both processes watch `config.json` with Chokidar
 - Clear Node.js require cache before reloading: `delete require.cache[require.resolve('./config.json')]`
 - Server broadcasts config updates to slideshow clients via SSE
 
 **Admin Interface:**
+
 - Vanilla JavaScript (no framework) for simplicity
 - Deep merge for partial config updates to preserve nested properties
 - Atomic file writes (temp file + rename) to prevent corruption
@@ -62,6 +69,7 @@ Two-process system running in Docker container:
 ## Development Workflow
 
 **Implementation follows task sequence in `docs/tasks/`:**
+
 1. Project initialization (01) → npm setup, config template
 2. Can parallelize: Preprocessor (02) + Server core (03)
 3. Frontend (04) → SSE integration (05)
@@ -71,17 +79,20 @@ Two-process system running in Docker container:
 7. UX polish (09), testing infrastructure (12-13), image management (10-17)
 
 **Using the /next-task command:**
+
 - Run `/next-task` to automatically identify the next unstarted task
 - Scans task files, checks dependencies, and creates implementation plan
 - Generates todo list from acceptance criteria
 - Use after completing each task to maintain workflow progression
 
 **Testing critical path:**
+
 - Add image to raw directory → appears in slideshow after WebP conversion
 - Delete image from processed directory → removed from slideshow via SSE
 - Change config via admin UI → both processes reload without restart
 
 **Test commands:**
+
 ```bash
 npm test                    # All tests
 npm run test:unit           # Unit tests only
@@ -91,12 +102,14 @@ npm run test:integration    # Integration tests (sequential)
 ## Docker Deployment
 
 **This is the only deployment method** (PM2 removed):
+
 - `start.js` spawns both preprocessor and server processes
 - Both processes log to stdout/stderr (captured by Docker)
 - Container restarts automatically via `restart: unless-stopped`
 - NAS directories mounted as volumes from host
 
 **Commands:**
+
 ```bash
 docker compose up -d --build    # Deploy
 docker compose logs -f          # View logs
@@ -108,6 +121,7 @@ docker compose down             # Stop
 **Framework:** Jest 30 + Supertest + EventSource
 
 **Structure:**
+
 - `tests/unit/` - Pure function tests (deepMerge, ipMatches, shuffle)
 - `tests/integration/` - API and SSE tests against running server
 - `tests/fixtures/` - Test images and data

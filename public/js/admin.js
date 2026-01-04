@@ -79,13 +79,21 @@ function showConfirmDialog(title, message) {
     };
 
     const cleanup = () => {
-      document.getElementById('confirm-ok').removeEventListener('click', handleConfirm);
-      document.getElementById('confirm-cancel').removeEventListener('click', handleCancel);
+      document
+        .getElementById('confirm-ok')
+        .removeEventListener('click', handleConfirm);
+      document
+        .getElementById('confirm-cancel')
+        .removeEventListener('click', handleCancel);
       dialog.removeEventListener('keydown', handleEscape);
     };
 
-    document.getElementById('confirm-ok').addEventListener('click', handleConfirm);
-    document.getElementById('confirm-cancel').addEventListener('click', handleCancel);
+    document
+      .getElementById('confirm-ok')
+      .addEventListener('click', handleConfirm);
+    document
+      .getElementById('confirm-cancel')
+      .addEventListener('click', handleCancel);
     dialog.addEventListener('keydown', handleEscape);
 
     dialog.showModal();
@@ -97,11 +105,16 @@ async function loadConfig() {
     const res = await fetch('/api/admin/config');
     const config = await res.json();
 
-    document.getElementById('interval').value = config.slideshowInterval / 60000;
+    document.getElementById('interval').value =
+      config.slideshowInterval / 60000;
     document.getElementById('width').value = config.preprocessing.targetWidth;
     document.getElementById('height').value = config.preprocessing.targetHeight;
   } catch (err) {
-    showMessage('slideshow-message', 'Error loading config: ' + err.message, 'error');
+    showMessage(
+      'slideshow-message',
+      'Error loading config: ' + err.message,
+      'error'
+    );
   }
 }
 
@@ -112,8 +125,9 @@ async function updateStats() {
 
     document.getElementById('raw-count').textContent = stats.raw;
     document.getElementById('processed-count').textContent = stats.processed;
-    document.getElementById('stats-timestamp').textContent =
-      new Date(stats.timestamp).toLocaleTimeString();
+    document.getElementById('stats-timestamp').textContent = new Date(
+      stats.timestamp
+    ).toLocaleTimeString();
   } catch (err) {
     console.error('Error updating stats:', err);
   }
@@ -138,7 +152,7 @@ async function saveSlideshow() {
     const res = await fetch('/api/admin/config', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slideshowInterval: interval })
+      body: JSON.stringify({ slideshowInterval: interval }),
     });
 
     if (res.ok) {
@@ -182,8 +196,8 @@ async function savePreprocessing() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        preprocessing: { targetWidth: width, targetHeight: height }
-      })
+        preprocessing: { targetWidth: width, targetHeight: height },
+      }),
     });
 
     if (!res.ok) {
@@ -328,7 +342,7 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Track unsaved changes on settings inputs
-  document.querySelectorAll('#interval, #width, #height').forEach(input => {
+  document.querySelectorAll('#interval, #width, #height').forEach((input) => {
     input.addEventListener('change', markAsUnsaved);
     input.addEventListener('input', markAsUnsaved);
   });
@@ -355,7 +369,9 @@ function handleFiles(fileList) {
     }
 
     // Check for duplicates
-    if (!filesToUpload.some(f => f.name === file.name && f.size === file.size)) {
+    if (
+      !filesToUpload.some((f) => f.name === file.name && f.size === file.size)
+    ) {
       filesToUpload.push(file);
     }
   }
@@ -408,16 +424,17 @@ function clearUploadQueue() {
 function updateUploadButton() {
   const btn = document.getElementById('upload-btn');
   btn.disabled = filesToUpload.length === 0;
-  btn.textContent = filesToUpload.length > 0
-    ? `Upload ${filesToUpload.length} File${filesToUpload.length > 1 ? 's' : ''}`
-    : 'Upload Selected Files';
+  btn.textContent =
+    filesToUpload.length > 0
+      ? `Upload ${filesToUpload.length} File${filesToUpload.length > 1 ? 's' : ''}`
+      : 'Upload Selected Files';
 }
 
 async function uploadFiles() {
   if (filesToUpload.length === 0) return;
 
   const formData = new FormData();
-  filesToUpload.forEach(file => formData.append('images', file));
+  filesToUpload.forEach((file) => formData.append('images', file));
 
   const progressBar = document.getElementById('upload-progress');
   const progressFill = document.getElementById('upload-progress-fill');
@@ -468,7 +485,6 @@ async function uploadFiles() {
 
     // Refresh stats after a delay to allow processing
     setTimeout(updateStats, 3000);
-
   } catch (err) {
     showToast('Upload failed: ' + (err.error || err.message), 'error');
   } finally {

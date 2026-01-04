@@ -6,7 +6,7 @@ const {
   stopContainer,
   waitForHealth,
   addProcessedImage,
-  clearProcessedImages
+  clearProcessedImages,
 } = require('./helpers');
 
 describe('Slideshow Display', () => {
@@ -35,7 +35,7 @@ describe('Slideshow Display', () => {
   test('GET /api/images returns image filenames', async () => {
     await addProcessedImage('photo1.webp');
     await addProcessedImage('photo2.webp');
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise((r) => setTimeout(r, 2000));
 
     const res = await fetch(`${BASE_URL}/api/images`);
     const images = await res.json();
@@ -47,7 +47,7 @@ describe('Slideshow Display', () => {
 
   test('GET /images/:filename serves image file', async () => {
     await addProcessedImage('serve-test.webp');
-    await new Promise(r => setTimeout(r, 2000));
+    await new Promise((r) => setTimeout(r, 2000));
 
     const res = await fetch(`${BASE_URL}/images/serve-test.webp`);
     expect(res.status).toBe(200);

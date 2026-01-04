@@ -34,14 +34,20 @@ app.post('/api/admin/images/bulk', adminIPFilter, async (req, res) => {
 
     if (!action || !Array.isArray(filenames) || filenames.length === 0) {
       return res.status(400).json({
-        error: 'action and filenames array required'
+        error: 'action and filenames array required',
       });
     }
 
-    const validActions = ['exclude', 'include', 'delete', 'restore', 'permanent-delete'];
+    const validActions = [
+      'exclude',
+      'include',
+      'delete',
+      'restore',
+      'permanent-delete',
+    ];
     if (!validActions.includes(action)) {
       return res.status(400).json({
-        error: `Invalid action. Must be one of: ${validActions.join(', ')}`
+        error: `Invalid action. Must be one of: ${validActions.join(', ')}`,
       });
     }
 
@@ -73,21 +79,21 @@ app.post('/api/admin/images/bulk', adminIPFilter, async (req, res) => {
         results.push({
           filename: safeFilename,
           success: false,
-          error: err.message
+          error: err.message,
         });
       }
     }
 
-    const successCount = results.filter(r => r.success).length;
+    const successCount = results.filter((r) => r.success).length;
     log('info', 'Bulk operation completed', {
       action,
       total: filenames.length,
-      success: successCount
+      success: successCount,
     });
 
     res.json({
       success: successCount === filenames.length,
-      results
+      results,
     });
   } catch (err) {
     log('error', 'Bulk operation failed', { error: err.message });
@@ -113,7 +119,7 @@ async function performExclude(filename, excluded) {
       newExcluded = currentExcluded;
     }
   } else {
-    newExcluded = currentExcluded.filter(f => f !== filename);
+    newExcluded = currentExcluded.filter((f) => f !== filename);
   }
 
   await saveExcludedImages(newExcluded);

@@ -29,53 +29,57 @@ Create the POST `/api/admin/images/:filename/exclude` endpoint that toggles an i
 ### POST /api/admin/images/:filename/exclude Endpoint
 
 ```javascript
-app.post('/api/admin/images/:filename/exclude', adminIPFilter, async (req, res) => {
-  try {
-    const filename = path.basename(req.params.filename); // Prevent traversal
-    const { excluded } = req.body;
-
-    if (typeof excluded !== 'boolean') {
-      return res.status(400).json({ error: 'excluded must be a boolean' });
-    }
-
-    // Verify file exists
-    const filePath = path.join(config.imagePath, filename);
+app.post(
+  '/api/admin/images/:filename/exclude',
+  adminIPFilter,
+  async (req, res) => {
     try {
-      await fs.access(filePath);
-    } catch {
-      return res.status(404).json({ error: 'Image not found' });
-    }
+      const filename = path.basename(req.params.filename); // Prevent traversal
+      const { excluded } = req.body;
 
-    // Update exclusion list
-    const currentExcluded = await loadExcludedImages();
-    let newExcluded;
-
-    if (excluded) {
-      if (!currentExcluded.includes(filename)) {
-        newExcluded = [...currentExcluded, filename];
-      } else {
-        newExcluded = currentExcluded;
+      if (typeof excluded !== 'boolean') {
+        return res.status(400).json({ error: 'excluded must be a boolean' });
       }
-    } else {
-      newExcluded = currentExcluded.filter(f => f !== filename);
+
+      // Verify file exists
+      const filePath = path.join(config.imagePath, filename);
+      try {
+        await fs.access(filePath);
+      } catch {
+        return res.status(404).json({ error: 'Image not found' });
+      }
+
+      // Update exclusion list
+      const currentExcluded = await loadExcludedImages();
+      let newExcluded;
+
+      if (excluded) {
+        if (!currentExcluded.includes(filename)) {
+          newExcluded = [...currentExcluded, filename];
+        } else {
+          newExcluded = currentExcluded;
+        }
+      } else {
+        newExcluded = currentExcluded.filter((f) => f !== filename);
+      }
+
+      await saveExcludedImages(newExcluded);
+
+      // Broadcast SSE event
+      if (excluded) {
+        broadcast('remove', { filename });
+      } else {
+        broadcast('add', { filename });
+      }
+
+      log('info', 'Image exclusion toggled', { filename, excluded });
+      res.json({ success: true, filename, excluded });
+    } catch (err) {
+      log('error', 'Failed to toggle exclusion', { error: err.message });
+      res.status(500).json({ error: 'Failed to toggle exclusion' });
     }
-
-    await saveExcludedImages(newExcluded);
-
-    // Broadcast SSE event
-    if (excluded) {
-      broadcast('remove', { filename });
-    } else {
-      broadcast('add', { filename });
-    }
-
-    log('info', 'Image exclusion toggled', { filename, excluded });
-    res.json({ success: true, filename, excluded });
-  } catch (err) {
-    log('error', 'Failed to toggle exclusion', { error: err.message });
-    res.status(500).json({ error: 'Failed to toggle exclusion' });
   }
-});
+);
 ```
 
 ## Testing Checklist

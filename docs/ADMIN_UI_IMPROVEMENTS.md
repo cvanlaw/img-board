@@ -5,6 +5,7 @@ This document outlines recommended changes to improve the usability, design, acc
 ## Current State Summary
 
 The admin interface consists of three card-based sections:
+
 1. **Image Statistics** - Displays raw/processed image counts with auto-refresh
 2. **Slideshow Settings** - Interval configuration
 3. **Preprocessing Settings** - Target dimensions with reprocessing controls
@@ -17,13 +18,14 @@ The admin interface consists of three card-based sections:
 
 ### 1.1 Document Structure
 
-| Issue | Current | Recommendation |
-|-------|---------|----------------|
-| Language declaration | Missing | Add `<html lang="en">` |
-| Semantic sections | `<div class="card">` | Use `<section>` with `aria-labelledby` |
-| Label associations | Labels wrap inputs | Use explicit `for`/`id` associations |
+| Issue                | Current              | Recommendation                         |
+| -------------------- | -------------------- | -------------------------------------- |
+| Language declaration | Missing              | Add `<html lang="en">`                 |
+| Semantic sections    | `<div class="card">` | Use `<section>` with `aria-labelledby` |
+| Label associations   | Labels wrap inputs   | Use explicit `for`/`id` associations   |
 
 **Example:**
+
 ```html
 <section class="card" aria-labelledby="stats-heading">
   <h2 id="stats-heading">Image Statistics</h2>
@@ -46,14 +48,20 @@ Dynamic content updates need screen reader announcements:
 <p id="slideshow-message" role="status" aria-live="polite"></p>
 
 <!-- Progress updates -->
-<div id="progress-container" role="progressbar"
-     aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"
-     aria-label="Reprocessing progress">
+<div
+  id="progress-container"
+  role="progressbar"
+  aria-valuenow="0"
+  aria-valuemin="0"
+  aria-valuemax="100"
+  aria-label="Reprocessing progress"
+></div>
 ```
 
 ### 1.3 Focus Management
 
 **Add focus indicators:**
+
 ```css
 input:focus,
 button:focus {
@@ -70,13 +78,14 @@ button:focus-visible {
 
 ### 1.4 Color Contrast & Non-Color Indicators
 
-| Current | Issue | Fix |
-|---------|-------|-----|
-| Green success text | Color-only | Add checkmark icon ✓ |
-| Red error text | Color-only | Add warning icon ⚠ |
+| Current            | Issue             | Fix                    |
+| ------------------ | ----------------- | ---------------------- |
+| Green success text | Color-only        | Add checkmark icon ✓   |
+| Red error text     | Color-only        | Add warning icon ⚠     |
 | Progress bar green | Low contrast text | Add visible percentage |
 
 **Recommended message format:**
+
 ```html
 <p class="message success">✓ Settings saved successfully</p>
 <p class="message error">⚠ Error: Invalid interval value</p>
@@ -96,9 +105,10 @@ input:invalid:focus {
 ```
 
 Add `aria-describedby` linking inputs to validation hints:
+
 ```html
 <label for="interval">Interval (minutes)</label>
-<input type="number" id="interval" aria-describedby="interval-hint">
+<input type="number" id="interval" aria-describedby="interval-hint" />
 <small id="interval-hint">Minimum: 0.1 minutes</small>
 ```
 
@@ -111,6 +121,7 @@ Add `aria-describedby` linking inputs to validation hints:
 **Problem:** Buttons remain clickable during API calls, enabling duplicate submissions.
 
 **Solution:**
+
 ```javascript
 async function saveSlideshow() {
   const btn = document.getElementById('save-slideshow-btn');
@@ -127,6 +138,7 @@ async function saveSlideshow() {
 ```
 
 **CSS for loading state:**
+
 ```css
 button:disabled {
   background-color: #6c757d;
@@ -152,6 +164,7 @@ button:disabled {
 ```
 
 Benefits:
+
 - Accessible (uses native `<dialog>`)
 - Customizable appearance
 - Non-blocking
@@ -177,15 +190,16 @@ Benefits:
 ```
 
 **Example for preprocessing dimensions:**
+
 ```html
 <div class="form-row">
   <div class="form-group">
     <label for="width">Target Width (px)</label>
-    <input type="number" id="width" min="1">
+    <input type="number" id="width" min="1" />
   </div>
   <div class="form-group">
     <label for="height">Target Height (px)</label>
-    <input type="number" id="height" min="1">
+    <input type="number" id="height" min="1" />
   </div>
 </div>
 ```
@@ -195,6 +209,7 @@ Benefits:
 **Problem:** Stats poll every 5 seconds even when tab is inactive.
 
 **Solution:**
+
 ```javascript
 let pollInterval;
 
@@ -223,7 +238,7 @@ Warn users before leaving with unsaved modifications:
 ```javascript
 let hasUnsavedChanges = false;
 
-document.querySelectorAll('input').forEach(input => {
+document.querySelectorAll('input').forEach((input) => {
   input.addEventListener('change', () => {
     hasUnsavedChanges = true;
   });
@@ -327,8 +342,13 @@ function onSaveSuccess() {
 
 ```html
 <div class="progress-wrapper">
-  <div class="progress-bar" role="progressbar"
-       aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">
+  <div
+    class="progress-bar"
+    role="progressbar"
+    aria-valuenow="0"
+    aria-valuemin="0"
+    aria-valuemax="100"
+  >
     <div class="progress-fill">
       <span class="progress-label">0%</span>
     </div>
@@ -478,8 +498,14 @@ function showToast(message, type = 'info', duration = 4000) {
 }
 
 @keyframes slideIn {
-  from { transform: translateX(100%); opacity: 0; }
-  to { transform: translateX(0); opacity: 1; }
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
 }
 ```
 
@@ -498,11 +524,14 @@ Show more context during reprocessing:
     <span class="stat">⚠ <span id="failed-count">0</span> failed</span>
     <span class="stat">📷 <span id="remaining-count">0</span> remaining</span>
   </div>
-  <p class="progress-time">Estimated time remaining: ~<span id="eta">--</span></p>
+  <p class="progress-time">
+    Estimated time remaining: ~<span id="eta">--</span>
+  </p>
 </div>
 ```
 
 Track processing rate to estimate completion:
+
 ```javascript
 let processingStartTime;
 let lastCompleted = 0;
@@ -550,8 +579,12 @@ Add inline help for settings:
 ```html
 <label for="interval">
   Slideshow Interval
-  <button type="button" class="help-btn" aria-label="Help for interval setting"
-          data-tooltip="Time each image displays before transitioning to the next">
+  <button
+    type="button"
+    class="help-btn"
+    aria-label="Help for interval setting"
+    data-tooltip="Time each image displays before transitioning to the next"
+  >
     ?
   </button>
 </label>
@@ -589,10 +622,10 @@ function confirmReprocess(width, height, imageCount) {
     details: [
       'Current processed images will be replaced',
       'This may take several minutes',
-      'Slideshow will continue during processing'
+      'Slideshow will continue during processing',
     ],
     confirmText: 'Start Reprocessing',
-    confirmClass: 'btn-danger'
+    confirmClass: 'btn-danger',
   });
 }
 ```
@@ -631,7 +664,9 @@ async function saveSlideshow() {
   showToast('Saving...', 'info');
 
   try {
-    await fetch('/api/admin/config', { /* ... */ });
+    await fetch('/api/admin/config', {
+      /* ... */
+    });
     showToast('Settings saved', 'success');
   } catch (error) {
     // Revert on failure
@@ -647,22 +682,26 @@ async function saveSlideshow() {
 ## 6. Implementation Priority
 
 ### Phase 1: Critical Accessibility (High Impact, Low Effort)
+
 1. Add `lang="en"` to HTML
 2. Add ARIA live regions for dynamic content
 3. Add focus indicators
 4. Add non-color status indicators
 
 ### Phase 2: Usability Fixes (High Impact)
+
 1. Disable buttons during operations
 2. Implement visibility-based polling
 3. Replace `window.confirm()` with custom dialogs
 
 ### Phase 3: Design Enhancements (Medium Impact)
+
 1. Improve card styling and visual hierarchy
 2. Enhance progress bar design
 3. Add responsive breakpoints
 
 ### Phase 4: UX Polish (Lower Priority)
+
 1. Toast notifications
 2. ETA calculations for reprocessing
 3. Contextual help tooltips
@@ -673,6 +712,7 @@ async function saveSlideshow() {
 ## 7. Testing Checklist
 
 ### Accessibility Testing
+
 - [ ] Screen reader announces status updates
 - [ ] Keyboard navigation works for all controls
 - [ ] Focus is visible on all interactive elements
@@ -680,12 +720,14 @@ async function saveSlideshow() {
 - [ ] ARIA labels are descriptive
 
 ### Usability Testing
+
 - [ ] Double-click prevention works
 - [ ] Polling stops when tab is inactive
 - [ ] Confirmation dialogs are keyboard accessible
 - [ ] Form validation provides clear feedback
 
 ### Responsive Testing
+
 - [ ] Layout works at 320px width
 - [ ] Touch targets are at least 44×44px
 - [ ] Forms are usable on mobile
@@ -695,10 +737,10 @@ async function saveSlideshow() {
 
 ## File Changes Summary
 
-| File | Changes |
-|------|---------|
-| `public/admin.html` | Semantic structure, ARIA, dialog markup |
+| File                   | Changes                                  |
+| ---------------------- | ---------------------------------------- |
+| `public/admin.html`    | Semantic structure, ARIA, dialog markup  |
 | `public/css/admin.css` | New file - extracted and enhanced styles |
-| `public/js/admin.js` | Button states, smart polling, validation |
+| `public/js/admin.js`   | Button states, smart polling, validation |
 
 **Estimated scope:** ~200 lines CSS, ~100 lines JS additions/modifications

@@ -6,7 +6,7 @@ const {
   cleanupTestDirectories,
   startContainer,
   stopContainer,
-  waitForHealth
+  waitForHealth,
 } = require('./helpers');
 
 describe('Server-Sent Events', () => {
@@ -42,7 +42,9 @@ describe('Server-Sent Events', () => {
     eventSource.addEventListener('connected', () => {
       // Create file inside container to trigger Chokidar detection
       // Host-to-container volume writes don't reliably trigger polling
-      execSync('docker exec slideshow-test touch /mnt/photos/processed/sse-test.webp');
+      execSync(
+        'docker exec slideshow-test touch /mnt/photos/processed/sse-test.webp'
+      );
     });
 
     eventSource.addEventListener('add', (event) => {

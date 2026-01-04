@@ -40,6 +40,7 @@ Multer 2.x has breaking changes. Review the migration guide:
 https://github.com/expressjs/multer/releases
 
 Current usage in server.js (lines 62-89, 196):
+
 - `multer.diskStorage()` - storage configuration
 - `multer()` - middleware creation with limits and fileFilter
 - `multer.MulterError` - error type checking
@@ -52,7 +53,7 @@ const uploadStorage = multer.diskStorage({
   filename: (req, file, cb) => {
     const uniqueName = `${Date.now()}-${file.originalname}`;
     cb(null, uniqueName);
-  }
+  },
 });
 
 const upload = multer({
@@ -62,7 +63,7 @@ const upload = multer({
     const allowed = /jpeg|jpg|png|gif|webp|heic|heif|raw|cr2|nef|arw/i;
     const ext = path.extname(file.originalname).slice(1);
     cb(null, allowed.test(ext));
-  }
+  },
 });
 ```
 

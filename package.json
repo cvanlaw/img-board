@@ -16,17 +16,22 @@
     "dev:preprocess": "NODE_ENV=development node preprocessor.js",
     "test": "node --no-webstorage ./node_modules/.bin/jest --passWithNoTests",
     "test:unit": "node --no-webstorage ./node_modules/.bin/jest --testPathPatterns=tests/unit --passWithNoTests",
-    "test:integration": "node --no-webstorage ./node_modules/.bin/jest --testPathPatterns=tests/integration --runInBand --passWithNoTests"
+    "test:integration": "node --no-webstorage ./node_modules/.bin/jest --testPathPatterns=tests/integration --runInBand --passWithNoTests",
+    "format:check": "prettier --check .",
+    "format:fix": "prettier --write ."
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
     "eventsource": "^4.1.0",
     "jest": "^30.2.0",
+    "prettier": "^3.7.4",
     "supertest": "^7.1.4"
   },
   "jest": {
     "testEnvironment": "node",
     "testTimeout": 30000,
-    "setupFilesAfterEnv": ["./tests/setup.js"]
+    "setupFilesAfterEnv": [
+      "./tests/setup.js"
+    ]
   }
 }

@@ -82,29 +82,29 @@ Note: If using CommonJS (require/module.exports), set `sourceType: 'commonjs'` i
 Add new jobs before the test jobs:
 
 ```yaml
-  lint:
-    name: Lint
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
-      - run: npm run lint:check
+lint:
+  name: Lint
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    - run: npm ci
+    - run: npm run lint:check
 
-  format:
-    name: Format Check
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-      - run: npm ci
-      - run: npm run format:check
+format:
+  name: Format Check
+  runs-on: ubuntu-latest
+  steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+    - run: npm ci
+    - run: npm run format:check
 ```
 
 ### Update /next-task Command
@@ -116,17 +116,42 @@ TodoWrite({
   todos: [
     // ... acceptance criteria todos ...
     // 🔔 MANDATORY CLEANUP TODOS - ALWAYS INCLUDE:
-    { content: "Run npm run format:check - all files must be formatted", status: "pending", activeForm: "Checking formatting" },
-    { content: "Run npm run lint:check - no lint errors", status: "pending", activeForm: "Running linter" },
-    { content: "Run npm run test:unit - all tests must pass", status: "pending", activeForm: "Running unit tests" },
-    { content: "Run npm run test:integration - all tests must pass", status: "pending", activeForm: "Running integration tests" },
-    { content: "Remove completed task file from docs/tasks/", status: "pending", activeForm: "Removing task file" },
-    { content: "Commit all changes using /ai-commit", status: "pending", activeForm: "Committing changes" }
-  ]
-})
+    {
+      content: 'Run npm run format:check - all files must be formatted',
+      status: 'pending',
+      activeForm: 'Checking formatting',
+    },
+    {
+      content: 'Run npm run lint:check - no lint errors',
+      status: 'pending',
+      activeForm: 'Running linter',
+    },
+    {
+      content: 'Run npm run test:unit - all tests must pass',
+      status: 'pending',
+      activeForm: 'Running unit tests',
+    },
+    {
+      content: 'Run npm run test:integration - all tests must pass',
+      status: 'pending',
+      activeForm: 'Running integration tests',
+    },
+    {
+      content: 'Remove completed task file from docs/tasks/',
+      status: 'pending',
+      activeForm: 'Removing task file',
+    },
+    {
+      content: 'Commit all changes using /ai-commit',
+      status: 'pending',
+      activeForm: 'Committing changes',
+    },
+  ],
+});
 ```
 
 Also update Step 9.1 verification to include:
+
 - Run `npm run format:check` - all files must be properly formatted (blocking)
 - Run `npm run lint:check` - no lint errors (blocking)
 

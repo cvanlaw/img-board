@@ -4,7 +4,7 @@ const {
   cleanupTestDirectories,
   startContainer,
   stopContainer,
-  waitForHealth
+  waitForHealth,
 } = require('./helpers');
 
 describe('Health Check', () => {

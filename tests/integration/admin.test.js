@@ -4,7 +4,7 @@ const {
   cleanupTestDirectories,
   startContainer,
   stopContainer,
-  waitForHealth
+  waitForHealth,
 } = require('./helpers');
 
 describe('Admin Configuration', () => {
@@ -32,7 +32,7 @@ describe('Admin Configuration', () => {
     const res = await fetch(`${BASE_URL}/api/admin/config`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slideshowInterval: 8000 })
+      body: JSON.stringify({ slideshowInterval: 8000 }),
     });
 
     expect(res.status).toBe(200);
@@ -46,7 +46,7 @@ describe('Admin Configuration', () => {
     const res = await fetch(`${BASE_URL}/api/admin/config`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ slideshowInterval: 500 })
+      body: JSON.stringify({ slideshowInterval: 500 }),
     });
 
     expect(res.status).toBe(400);

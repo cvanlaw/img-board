@@ -5,18 +5,21 @@ Simple shell-script based deployment for a single homelab host. The application 
 ## Architecture Overview
 
 **Environment:**
+
 - Host OS: Ubuntu Server (latest LTS)
 - Network: Private network with internet access
 - Docker: Latest stable Docker Engine + Compose plugin
 - Orchestration: Shell scripts (no Ansible)
 
 **Application:**
+
 - Two-process Docker container (preprocessor + server)
 - Base image: Node.js 20 Alpine
 - Port: 3000 (HTTPS)
 - HTTPS: Enabled with Let's Encrypt certificates from S3
 
 **Certificate Management:**
+
 - Source: AWS S3 bucket (managed by cert-getter Lambda)
 - Structure: `s3://{bucket}/{hostname}/cert.pem`, `key.pem`, `chain.pem`
 - Format: PEM-encoded ECDSA P-256 certificates
@@ -24,6 +27,7 @@ Simple shell-script based deployment for a single homelab host. The application 
 - Updates: Run `./scripts/update-certs.sh` then restart container
 
 **NAS Integration:**
+
 - Raw images: `/mnt/nas/photos/raw` → `/mnt/photos/raw:ro` (read-only)
 - Processed images: `/mnt/nas/photos/processed` → `/mnt/photos/processed`
 - Archive: `/mnt/nas/photos/archive` → `/mnt/photos/archive`
@@ -42,6 +46,7 @@ deploy/
 ```
 
 On the host after deployment:
+
 ```
 /opt/imgboard/
 ├── source/                  # Application source code
@@ -243,7 +248,7 @@ services:
     container_name: imgboard
     restart: unless-stopped
     ports:
-      - "3000:3000"
+      - '3000:3000'
     volumes:
       # Application config
       - ./config.json:/app/config.json:ro
@@ -256,7 +261,15 @@ services:
       - /mnt/nas/photos/processed:/mnt/photos/processed
       - /mnt/nas/photos/archive:/mnt/photos/archive
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "--no-check-certificate", "https://localhost:3000/health"]
+      test:
+        [
+          'CMD',
+          'wget',
+          '-q',
+          '--spider',
+          '--no-check-certificate',
+          'https://localhost:3000/health',
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -332,6 +345,7 @@ docker compose up -d --build
 ```
 
 Or re-run deploy script:
+
 ```bash
 ./deploy.sh
 ```
@@ -360,12 +374,14 @@ docker compose -f /opt/imgboard/docker-compose.yml logs -f
 ## Certificate Management
 
 **Renewal Process:**
+
 1. cert-getter Lambda renews certificates automatically (daily 3:00 AM UTC)
 2. New certificates uploaded to S3: `s3://{bucket}/{hostname}/`
 3. Pull to host: `./update-certs.sh`
 4. Restart container: `docker compose restart`
 
 **Optional: Cron for automatic certificate updates**
+
 ```bash
 # Check for new certs weekly and restart if changed
 0 4 * * 0 /opt/imgboard/deploy/update-certs.sh && docker compose -f /opt/imgboard/docker-compose.yml restart
@@ -382,23 +398,27 @@ docker compose -f /opt/imgboard/docker-compose.yml logs -f
 ## Troubleshooting
 
 **Container won't start:**
+
 ```bash
 docker compose -f /opt/imgboard/docker-compose.yml logs
 ```
 
 **Certificate errors:**
+
 ```bash
 openssl x509 -in /opt/imgboard/certs/cert.pem -noout -text
 openssl verify -CAfile /opt/imgboard/certs/chain.pem /opt/imgboard/certs/cert.pem
 ```
 
 **NAS mount issues:**
+
 ```bash
 ls -la /mnt/nas/photos/
 mount | grep nas
 ```
 
 **Health check failing:**
+
 ```bash
 curl -vk https://localhost:3000/health
 ```
@@ -415,4 +435,3 @@ deploy/
 ├── config.example.json   # Application config template
 └── README.md             # Quick reference
 ```
-

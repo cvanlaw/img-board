@@ -33,12 +33,14 @@ let sseClients = [];
 let pendingChanges = { added: [], removed: [] };
 
 const log = (level, message, data = {}) => {
-  console.log(JSON.stringify({
-    timestamp: new Date().toISOString(),
-    level,
-    message,
-    ...data
-  }));
+  console.log(
+    JSON.stringify({
+      timestamp: new Date().toISOString(),
+      level,
+      message,
+      ...data,
+    })
+  );
 };
 
 function adminIPFilter(req, res, next) {
@@ -50,7 +52,9 @@ function adminIPFilter(req, res, next) {
     return next();
   }
 
-  const isAllowed = allowedPatterns.some(pattern => ipMatches(clientIP, pattern));
+  const isAllowed = allowedPatterns.some((pattern) =>
+    ipMatches(clientIP, pattern)
+  );
   if (!isAllowed) {
     log('warn', 'Admin access denied', { ip: clientIP });
     return res.status(403).json({ error: 'Access denied' });
@@ -66,10 +70,12 @@ const uploadStorage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     // Sanitize: remove path components, replace unsafe characters
-    const safeName = path.basename(file.originalname).replace(/[^a-zA-Z0-9._-]/g, '_');
+    const safeName = path
+      .basename(file.originalname)
+      .replace(/[^a-zA-Z0-9._-]/g, '_');
     const uniqueName = `${Date.now()}-${safeName}`;
     cb(null, uniqueName);
-  }
+  },
 });
 
 const uploadFilter = (req, file, cb) => {
@@ -91,8 +97,8 @@ const upload = multer({
   fileFilter: uploadFilter,
   limits: {
     fileSize: 50 * 1024 * 1024, // 50MB
-    files: 10
-  }
+    files: 10,
+  },
 });
 
 app.use(express.static('public'));
@@ -108,7 +114,7 @@ app.get('/admin', (req, res) => {
 
 function broadcast(event, data) {
   const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
-  sseClients.forEach(client => client.write(message));
+  sseClients.forEach((client) => client.write(message));
   log('debug', 'SSE broadcast', { event, clientCount: sseClients.length });
 }
 
@@ -124,7 +130,7 @@ app.get('/api/events', (req, res) => {
   log('info', 'SSE client connected', { total: sseClients.length });
 
   req.on('close', () => {
-    sseClients = sseClients.filter(client => client !== res);
+    sseClients = sseClients.filter((client) => client !== res);
     log('info', 'SSE client disconnected', { remaining: sseClients.length });
   });
 });
@@ -132,7 +138,7 @@ app.get('/api/events', (req, res) => {
 app.get('/health', (req, res) => {
   res.json({
     status: 'ok',
-    uptime: process.uptime()
+    uptime: process.uptime(),
   });
 });
 
@@ -143,13 +149,20 @@ app.get('/api/admin/config', (req, res) => {
 
 app.post('/api/admin/config', async (req, res) => {
   try {
-    const currentConfig = JSON.parse(await fs.readFile('./config.json', 'utf8'));
+    const currentConfig = JSON.parse(
+      await fs.readFile('./config.json', 'utf8')
+    );
     const newConfig = deepMerge(currentConfig, req.body);
 
     if (newConfig.slideshowInterval < 1000) {
-      return res.status(400).json({ error: 'slideshowInterval must be >= 1000ms' });
+      return res
+        .status(400)
+        .json({ error: 'slideshowInterval must be >= 1000ms' });
     }
-    if (newConfig.preprocessing?.quality < 1 || newConfig.preprocessing?.quality > 100) {
+    if (
+      newConfig.preprocessing?.quality < 1 ||
+      newConfig.preprocessing?.quality > 100
+    ) {
       return res.status(400).json({ error: 'quality must be 1-100' });
     }
 
@@ -167,7 +180,9 @@ app.post('/api/admin/config', async (req, res) => {
     res.json({ success: true, reprocessing: aspectChanged });
   } catch (err) {
     log('error', 'Config update failed', { error: err.message });
-    res.status(500).json({ error: 'Failed to update configuration', details: err.message });
+    res
+      .status(500)
+      .json({ error: 'Failed to update configuration', details: err.message });
   }
 });
 
@@ -177,17 +192,20 @@ app.post('/api/admin/upload', upload.array('images', 10), (req, res) => {
     return res.status(400).json({ error: 'No files uploaded' });
   }
 
-  const uploaded = req.files.map(f => ({
+  const uploaded = req.files.map((f) => ({
     original: f.originalname,
     saved: f.filename,
-    size: f.size
+    size: f.size,
   }));
 
-  log('info', 'Images uploaded', { count: uploaded.length, files: uploaded.map(f => f.saved) });
+  log('info', 'Images uploaded', {
+    count: uploaded.length,
+    files: uploaded.map((f) => f.saved),
+  });
   res.json({
     success: true,
     uploaded,
-    message: `${uploaded.length} file(s) uploaded. Processing will begin shortly.`
+    message: `${uploaded.length} file(s) uploaded. Processing will begin shortly.`,
   });
 });
 
@@ -217,29 +235,32 @@ app.get('/api/admin/stats', async (req, res) => {
 
   try {
     const rawFiles = await fs.readdir(config.preprocessing.rawImagePath);
-    rawCount = rawFiles.filter(f =>
-      config.preprocessing.inputExtensions.includes(path.extname(f).toLowerCase())
+    rawCount = rawFiles.filter((f) =>
+      config.preprocessing.inputExtensions.includes(
+        path.extname(f).toLowerCase()
+      )
     ).length;
-  } catch (e) {
-  }
+  } catch (e) {}
 
   try {
     const processedFiles = await fs.readdir(config.imagePath);
-    processedCount = processedFiles.filter(f =>
+    processedCount = processedFiles.filter((f) =>
       config.imageExtensions.includes(path.extname(f).toLowerCase())
     ).length;
-  } catch (e) {
-  }
+  } catch (e) {}
 
   res.json({
     raw: rawCount,
     processed: processedCount,
-    timestamp: Date.now()
+    timestamp: Date.now(),
   });
 });
 
 app.post('/api/admin/reprocess', async (req, res) => {
-  if (fsSync.existsSync('./.reprocess-trigger') || fsSync.existsSync('./.reprocess-progress.json')) {
+  if (
+    fsSync.existsSync('./.reprocess-trigger') ||
+    fsSync.existsSync('./.reprocess-progress.json')
+  ) {
     return res.status(409).json({ error: 'Reprocessing already in progress' });
   }
 
@@ -247,7 +268,8 @@ app.post('/api/admin/reprocess', async (req, res) => {
   log('info', 'Reprocessing triggered');
   res.json({
     status: 'triggered',
-    message: 'Reprocessing started. Use /api/admin/reprocess-status to monitor.'
+    message:
+      'Reprocessing started. Use /api/admin/reprocess-status to monitor.',
   });
 });
 
@@ -267,21 +289,25 @@ app.get('/api/images', async (req, res) => {
     const files = await fs.readdir(config.imagePath);
     const excluded = await loadExcludedImages();
 
-    let images = files.filter(f =>
-      config.imageExtensions.includes(path.extname(f).toLowerCase()) &&
-      !excluded.includes(f)
+    let images = files.filter(
+      (f) =>
+        config.imageExtensions.includes(path.extname(f).toLowerCase()) &&
+        !excluded.includes(f)
     );
 
     if (config.randomOrder) {
       images = shuffleArray(images);
     }
 
-    log('info', 'Image list requested', { count: images.length, excluded: excluded.length });
+    log('info', 'Image list requested', {
+      count: images.length,
+      excluded: excluded.length,
+    });
     res.json(images);
   } catch (err) {
     log('error', 'Failed to read image directory', {
       path: config.imagePath,
-      error: err.message
+      error: err.message,
     });
     res.status(500).json({ error: 'Failed to read images' });
   }
@@ -295,7 +321,7 @@ app.get('/images/:filename', (req, res) => {
     log('warn', 'Blocked file with invalid extension', {
       filename,
       ext,
-      ip: req.ip
+      ip: req.ip,
     });
     return res.status(403).send('Forbidden');
   }
@@ -305,7 +331,7 @@ app.get('/images/:filename', (req, res) => {
     log('warn', 'Blocked directory traversal attempt', {
       requested: filename,
       sanitized: safeName,
-      ip: req.ip
+      ip: req.ip,
     });
     return res.status(403).send('Forbidden');
   }
@@ -316,7 +342,7 @@ app.get('/images/:filename', (req, res) => {
     if (err) {
       log('error', 'Failed to serve image', {
         filename: safeName,
-        error: err.message
+        error: err.message,
       });
       res.status(404).send('Not found');
     } else {
@@ -331,7 +357,7 @@ const watcher = chokidar.watch(config.imagePath, {
   ignoreInitial: false,
   awaitWriteFinish: true,
   usePolling: true,
-  interval: 1000
+  interval: 1000,
 });
 
 watcher.on('add', (filePath) => {
@@ -353,7 +379,7 @@ watcher.on('unlink', (filePath) => {
   if (config.reshuffleInterval > 0) {
     pendingChanges.removed.push(filename);
   } else {
-    imageList = imageList.filter(f => f !== filename);
+    imageList = imageList.filter((f) => f !== filename);
     broadcast('remove', { filename });
   }
   log('info', 'Image removed', { filename });
@@ -361,9 +387,9 @@ watcher.on('unlink', (filePath) => {
 
 if (config.reshuffleInterval > 0) {
   setInterval(() => {
-    pendingChanges.added.forEach(f => imageList.push(f));
-    pendingChanges.removed.forEach(f => {
-      imageList = imageList.filter(img => img !== f);
+    pendingChanges.added.forEach((f) => imageList.push(f));
+    pendingChanges.removed.forEach((f) => {
+      imageList = imageList.filter((img) => img !== f);
     });
     pendingChanges = { added: [], removed: [] };
 
@@ -381,8 +407,8 @@ const configWatcher = chokidar.watch('./config.json', {
   ignoreInitial: true,
   awaitWriteFinish: {
     stabilityThreshold: 500,
-    pollInterval: 100
-  }
+    pollInterval: 100,
+  },
 });
 
 configWatcher.on('change', () => {
@@ -402,11 +428,11 @@ function updateSettings(newConfig) {
 
   if (oldInterval !== newConfig.slideshowInterval) {
     broadcast('config-update', {
-      slideshowInterval: newConfig.slideshowInterval
+      slideshowInterval: newConfig.slideshowInterval,
     });
     log('info', 'Slideshow interval updated', {
       from: oldInterval,
-      to: newConfig.slideshowInterval
+      to: newConfig.slideshowInterval,
     });
   }
 }
@@ -418,21 +444,21 @@ function startServer() {
     try {
       const options = {
         cert: fsSync.readFileSync(config.https.cert),
-        key: fsSync.readFileSync(config.https.key)
+        key: fsSync.readFileSync(config.https.key),
       };
 
       server = https.createServer(options, app).listen(config.port, () => {
         log('info', 'HTTPS server started', {
           port: config.port,
           imagePath: config.imagePath,
-          staticPath: 'public'
+          staticPath: 'public',
         });
       });
     } catch (err) {
       log('error', 'Failed to start HTTPS server', {
         error: err.message,
         cert: config.https.cert,
-        key: config.https.key
+        key: config.https.key,
       });
       process.exit(1);
     }
@@ -441,7 +467,7 @@ function startServer() {
       log('info', 'HTTP server started', {
         port: config.port,
         imagePath: config.imagePath,
-        staticPath: 'public'
+        staticPath: 'public',
       });
     });
   }

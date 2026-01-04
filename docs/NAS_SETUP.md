@@ -40,22 +40,26 @@ On a Synology NAS or Linux server:
 ### Option 2: Linux NFS Server
 
 Install NFS server:
+
 ```bash
 sudo apt-get install nfs-kernel-server
 ```
 
 Create directory structure:
+
 ```bash
 sudo mkdir -p /srv/img-board/{raw,processed,archive}
 sudo chmod -R 755 /srv/img-board
 ```
 
 Configure `/etc/exports`:
+
 ```
 /srv/img-board 192.168.0.0/24(rw,sync,no_subtree_check,all_squash,anonuid=1000,anongid=1000)
 ```
 
 Apply changes:
+
 ```bash
 sudo exportfs -ra
 sudo systemctl restart nfs-kernel-server
@@ -98,11 +102,13 @@ mountpoint /mnt/nas/photos
 ### Cannot mount NFS share
 
 Check NFS server is exporting:
+
 ```bash
 showmount -e 192.168.0.11
 ```
 
 Expected output:
+
 ```
 Export list for 192.168.0.11:
 /img-board 192.168.0.0/24
@@ -115,6 +121,7 @@ Check NFS export permissions and UID/GID mapping. The container runs as UID 1000
 ### Network issues
 
 Verify connectivity:
+
 ```bash
 ping 192.168.0.11
 rpcinfo -p 192.168.0.11
@@ -125,6 +132,7 @@ rpcinfo -p 192.168.0.11
 Ensure `_netdev` option is in fstab (waits for network).
 
 Check systemd mount dependencies:
+
 ```bash
 sudo systemctl status mnt-nas-photos.mount
 ```

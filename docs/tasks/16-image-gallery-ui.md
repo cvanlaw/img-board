@@ -36,7 +36,7 @@ Create the image management gallery interface in the admin panel. Add HTML struc
   <h2>Manage Images</h2>
 
   <div class="image-controls">
-    <input type="text" id="image-search" placeholder="Search by filename...">
+    <input type="text" id="image-search" placeholder="Search by filename..." />
     <select id="image-filter">
       <option value="all">All Images</option>
       <option value="visible">Visible Only</option>
@@ -104,7 +104,7 @@ Create the image management gallery interface in the admin panel. Add HTML struc
   bottom: 0;
   left: 0;
   right: 0;
-  background: rgba(0,0,0,0.7);
+  background: rgba(0, 0, 0, 0.7);
   color: white;
   padding: 0.25rem 0.5rem;
   font-size: 0.75rem;
@@ -133,7 +133,7 @@ Create the image management gallery interface in the admin panel. Add HTML struc
 }
 
 .btn-icon {
-  background: rgba(0,0,0,0.6);
+  background: rgba(0, 0, 0, 0.6);
   color: white;
   border: none;
   border-radius: 4px;
@@ -193,7 +193,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
 async function loadImages() {
   try {
-    const res = await fetch(`/api/admin/images?filter=${currentFilter}&limit=1000`);
+    const res = await fetch(
+      `/api/admin/images?filter=${currentFilter}&limit=1000`
+    );
     const data = await res.json();
     allImages = data.images;
     renderGallery();
@@ -208,7 +210,7 @@ function renderGallery() {
   // Apply search filter
   let filtered = allImages;
   if (searchQuery) {
-    filtered = allImages.filter(img =>
+    filtered = allImages.filter((img) =>
       img.filename.toLowerCase().includes(searchQuery)
     );
   }
@@ -223,7 +225,9 @@ function renderGallery() {
   const start = (currentPage - 1) * imagesPerPage;
   const pageImages = filtered.slice(start, start + imagesPerPage);
 
-  gallery.innerHTML = pageImages.map(img => `
+  gallery.innerHTML = pageImages
+    .map(
+      (img) => `
     <div class="gallery-item ${img.excluded ? 'excluded' : ''}" data-filename="${img.filename}">
       <img src="/images/${img.filename}" loading="lazy" alt="${img.filename}">
       <div class="filename" title="${img.filename}">${img.filename}</div>
@@ -236,7 +240,9 @@ function renderGallery() {
         </button>
       </div>
     </div>
-  `).join('');
+  `
+    )
+    .join('');
 
   renderPagination(filtered.length);
 }
@@ -263,14 +269,14 @@ function goToPage(page) {
 }
 
 async function toggleExclusion(filename) {
-  const img = allImages.find(i => i.filename === filename);
+  const img = allImages.find((i) => i.filename === filename);
   if (!img) return;
 
   try {
     const res = await fetch(`/api/admin/images/${filename}/exclude`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ excluded: !img.excluded })
+      body: JSON.stringify({ excluded: !img.excluded }),
     });
 
     if (res.ok) {
@@ -287,11 +293,11 @@ async function deleteImage(filename) {
 
   try {
     const res = await fetch(`/api/admin/images/${filename}`, {
-      method: 'DELETE'
+      method: 'DELETE',
     });
 
     if (res.ok) {
-      allImages = allImages.filter(i => i.filename !== filename);
+      allImages = allImages.filter((i) => i.filename !== filename);
       renderGallery();
       showMessage('gallery-message', 'Image moved to trash', 'success');
     }

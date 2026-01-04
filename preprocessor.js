@@ -7,19 +7,24 @@ const fsSync = require('fs');
 let config = require('./config.json');
 
 const log = (level, message, data = {}) => {
-  console.log(JSON.stringify({
-    timestamp: new Date().toISOString(),
-    level,
-    message,
-    ...data
-  }));
+  console.log(
+    JSON.stringify({
+      timestamp: new Date().toISOString(),
+      level,
+      message,
+      ...data,
+    })
+  );
 };
 
 async function ensureDirectory(dirPath) {
   try {
     await fs.mkdir(dirPath, { recursive: true });
   } catch (err) {
-    log('error', 'Failed to create directory', { path: dirPath, error: err.message });
+    log('error', 'Failed to create directory', {
+      path: dirPath,
+      error: err.message,
+    });
   }
 }
 
@@ -27,30 +32,36 @@ async function processImage(inputPath) {
   const filename = path.basename(inputPath);
   const nameWithoutExt = path.parse(filename).name;
   const outputFilename = `${nameWithoutExt}.webp`;
-  const outputPath = path.join(config.preprocessing.processedImagePath, outputFilename);
+  const outputPath = path.join(
+    config.preprocessing.processedImagePath,
+    outputFilename
+  );
 
   try {
     log('info', 'Processing image', { input: inputPath, output: outputPath });
 
     await sharp(inputPath)
       .webp({ quality: config.preprocessing.quality })
-      .resize(config.preprocessing.targetWidth, config.preprocessing.targetHeight, {
-        fit: 'inside',
-        withoutEnlargement: true
-      })
+      .resize(
+        config.preprocessing.targetWidth,
+        config.preprocessing.targetHeight,
+        {
+          fit: 'inside',
+          withoutEnlargement: true,
+        }
+      )
       .toFile(outputPath);
 
     log('info', 'Image processed successfully', {
       input: inputPath,
-      output: outputPath
+      output: outputPath,
     });
 
     await handleOriginalFile(inputPath);
-
   } catch (err) {
     log('error', 'Failed to process image', {
       input: inputPath,
-      error: err.message
+      error: err.message,
     });
   }
 }
@@ -65,14 +76,17 @@ async function handleOriginalFile(inputPath) {
       const filename = path.basename(inputPath);
       const archivePath = path.join(config.preprocessing.archivePath, filename);
       await fs.rename(inputPath, archivePath);
-      log('info', 'Archived original file', { from: inputPath, to: archivePath });
+      log('info', 'Archived original file', {
+        from: inputPath,
+        to: archivePath,
+      });
     } else {
       log('info', 'Kept original file', { path: inputPath });
     }
   } catch (err) {
     log('error', 'Failed to handle original file', {
       path: inputPath,
-      error: err.message
+      error: err.message,
     });
   }
 }
@@ -92,7 +106,7 @@ async function init() {
 
   log('info', 'Starting image preprocessor', {
     rawPath: config.preprocessing.rawImagePath,
-    processedPath: config.preprocessing.processedImagePath
+    processedPath: config.preprocessing.processedImagePath,
   });
 
   const watcher = chokidar.watch(config.preprocessing.rawImagePath, {
@@ -101,10 +115,10 @@ async function init() {
     ignoreInitial: false,
     awaitWriteFinish: {
       stabilityThreshold: 2000,
-      pollInterval: 100
+      pollInterval: 100,
     },
     usePolling: true,
-    interval: 1000
+    interval: 1000,
   });
 
   watcher
@@ -114,7 +128,7 @@ async function init() {
       } else {
         log('warn', 'Skipping unsupported file format', {
           path: filePath,
-          ext: path.extname(filePath)
+          ext: path.extname(filePath),
         });
       }
     })
@@ -123,7 +137,7 @@ async function init() {
     })
     .on('ready', () => {
       log('info', 'Watching for new images', {
-        path: config.preprocessing.rawImagePath
+        path: config.preprocessing.rawImagePath,
       });
     });
 
@@ -132,8 +146,8 @@ async function init() {
     ignoreInitial: true,
     awaitWriteFinish: {
       stabilityThreshold: 500,
-      pollInterval: 100
-    }
+      pollInterval: 100,
+    },
   });
 
   configWatcher.on('change', () => {
@@ -149,7 +163,7 @@ async function init() {
 
   const reprocessWatcher = chokidar.watch('./.reprocess-trigger', {
     persistent: true,
-    ignoreInitial: true
+    ignoreInitial: true,
   });
 
   reprocessWatcher.on('add', handleReprocessTrigger);
@@ -160,11 +174,11 @@ async function scanDirectory(dirPath) {
   const files = await fs.readdir(dirPath);
 
   return files
-    .filter(f => {
+    .filter((f) => {
       const ext = path.extname(f).toLowerCase();
       return config.preprocessing.inputExtensions.includes(ext);
     })
-    .map(f => path.join(dirPath, f));
+    .map((f) => path.join(dirPath, f));
 }
 
 async function handleReprocessTrigger() {
@@ -190,25 +204,29 @@ async function handleReprocessTrigger() {
         errors.push({ file: path.basename(file), error: err.message });
         log('error', 'Failed to process image', {
           file: path.basename(file),
-          error: err.message
+          error: err.message,
         });
       }
 
-      await fs.writeFile('./.reprocess-progress.json',
+      await fs.writeFile(
+        './.reprocess-progress.json',
         JSON.stringify({
           completed,
           failed,
           total: files.length,
-          timestamp: Date.now()
+          timestamp: Date.now(),
         })
       );
     }
 
-    log('info', 'Reprocessing complete', { completed, failed, total: files.length });
+    log('info', 'Reprocessing complete', {
+      completed,
+      failed,
+      total: files.length,
+    });
     if (errors.length > 0) {
-      log('warn', 'Failed files', { files: errors.map(e => e.file) });
+      log('warn', 'Failed files', { files: errors.map((e) => e.file) });
     }
-
   } catch (err) {
     log('error', 'Reprocessing failed', { error: err.message });
   } finally {
@@ -217,9 +235,13 @@ async function handleReprocessTrigger() {
 }
 
 async function cleanup() {
-  try { await fs.unlink('./.reprocess-trigger'); } catch {}
+  try {
+    await fs.unlink('./.reprocess-trigger');
+  } catch {}
   setTimeout(async () => {
-    try { await fs.unlink('./.reprocess-progress.json'); } catch {}
+    try {
+      await fs.unlink('./.reprocess-progress.json');
+    } catch {}
   }, 5000);
 }
 
@@ -233,24 +255,26 @@ function updateSettings(newConfig) {
   log('info', 'Preprocessor config reloaded', {
     targetWidth: config.preprocessing.targetWidth,
     targetHeight: config.preprocessing.targetHeight,
-    quality: config.preprocessing.quality
+    quality: config.preprocessing.quality,
   });
 
-  if (oldWidth !== newConfig.preprocessing.targetWidth ||
-      oldHeight !== newConfig.preprocessing.targetHeight ||
-      oldQuality !== newConfig.preprocessing.quality) {
+  if (
+    oldWidth !== newConfig.preprocessing.targetWidth ||
+    oldHeight !== newConfig.preprocessing.targetHeight ||
+    oldQuality !== newConfig.preprocessing.quality
+  ) {
     log('info', 'Processing settings changed', {
       from: { width: oldWidth, height: oldHeight, quality: oldQuality },
       to: {
         width: newConfig.preprocessing.targetWidth,
         height: newConfig.preprocessing.targetHeight,
-        quality: newConfig.preprocessing.quality
-      }
+        quality: newConfig.preprocessing.quality,
+      },
     });
   }
 }
 
-init().catch(err => {
+init().catch((err) => {
   log('error', 'Failed to initialize preprocessor', { error: err.message });
   process.exit(1);
 });

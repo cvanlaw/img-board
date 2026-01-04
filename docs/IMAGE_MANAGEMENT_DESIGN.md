@@ -41,6 +41,7 @@ New config option for soft-deleted images:
 ```
 
 Deleted images move here with metadata file:
+
 ```
 /mnt/photos/trash/
   photo1.webp
@@ -58,6 +59,7 @@ List all images with metadata and status.
 **Query params:** `?filter=all|visible|excluded|trash&page=1&limit=50`
 
 **Response:**
+
 ```json
 {
   "images": [
@@ -83,6 +85,7 @@ Toggle exclusion status.
 **Request:** `{ "excluded": true }`
 
 **Behavior:**
+
 - Updates `.excluded-images.json` atomically
 - Broadcasts SSE `remove` or `add` event to slideshow clients
 
@@ -91,6 +94,7 @@ Toggle exclusion status.
 Soft delete - move to trash.
 
 **Behavior:**
+
 - Move from processed directory to `config.admin.trashPath`
 - Create `.meta.json` file with deletion timestamp
 - Remove from `.excluded-images.json` if present
@@ -102,6 +106,7 @@ Soft delete - move to trash.
 Restore from trash.
 
 **Behavior:**
+
 - Move from trash back to processed directory
 - Delete `.meta.json` file
 - Broadcast SSE `add` event
@@ -111,6 +116,7 @@ Restore from trash.
 Hard delete from trash (permanent).
 
 **Behavior:**
+
 - Remove file and `.meta.json` from trash
 - No recovery possible
 
@@ -119,6 +125,7 @@ Hard delete from trash (permanent).
 Bulk operations.
 
 **Request:**
+
 ```json
 {
   "action": "exclude" | "include" | "delete" | "restore" | "permanent-delete",
@@ -127,6 +134,7 @@ Bulk operations.
 ```
 
 **Response:**
+
 ```json
 {
   "success": true,
@@ -144,6 +152,7 @@ Bulk operations.
 ### File: `server.js`
 
 **New functions:**
+
 ```javascript
 const EXCLUDED_FILE = './.excluded-images.json';
 
@@ -164,15 +173,17 @@ async function saveExcludedImages(excluded) {
 ```
 
 **Modify GET `/api/images`:**
+
 ```javascript
 // Filter out excluded images from slideshow
 app.get('/api/images', async (req, res) => {
   const files = await fs.readdir(config.imagePath);
   const excluded = await loadExcludedImages();
 
-  let images = files.filter(f =>
-    config.imageExtensions.includes(path.extname(f).toLowerCase()) &&
-    !excluded.includes(f)  // Filter excluded
+  let images = files.filter(
+    (f) =>
+      config.imageExtensions.includes(path.extname(f).toLowerCase()) &&
+      !excluded.includes(f) // Filter excluded
   );
   // ... rest unchanged
 });
@@ -207,11 +218,13 @@ Add "Manage Images" card between "Upload Images" and "Slideshow Settings":
 ```
 
 **Visual states:**
+
 - Normal: Full opacity
 - Excluded: 50% opacity with "excluded" badge
 - Selected: Blue border
 
 **Filter dropdown options:**
+
 - All Images
 - Visible Only
 - Excluded Only
@@ -220,6 +233,7 @@ Add "Manage Images" card between "Upload Images" and "Slideshow Settings":
 ### Gallery Item Actions
 
 Each thumbnail shows:
+
 - Checkbox (top-left) for multi-select
 - Filename (below image, truncated)
 - Toggle exclude button (eye icon)
@@ -228,6 +242,7 @@ Each thumbnail shows:
 ### Trash View
 
 When filter = "Trash":
+
 - Shows deleted images
 - Actions change to: [Restore] [Permanent Delete]
 - Warning banner: "Items in trash will be permanently deleted after 30 days" (optional auto-cleanup)
@@ -251,8 +266,12 @@ When filter = "Trash":
   overflow: hidden;
 }
 
-.gallery-item.selected { border-color: #007bff; }
-.gallery-item.excluded { opacity: 0.5; }
+.gallery-item.selected {
+  border-color: #007bff;
+}
+.gallery-item.excluded {
+  opacity: 0.5;
+}
 
 .gallery-item img {
   width: 100%;
@@ -271,13 +290,15 @@ When filter = "Trash":
   bottom: 0;
   left: 0;
   right: 0;
-  background: linear-gradient(transparent, rgba(0,0,0,0.8));
+  background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
   padding: 0.5rem;
   display: flex;
   justify-content: space-between;
 }
 
-.btn-danger { background: #dc3545; }
+.btn-danger {
+  background: #dc3545;
+}
 ```
 
 ---
@@ -292,14 +313,30 @@ let currentPage = 1;
 let currentFilter = 'all';
 
 // Core functions
-async function loadImages() { /* GET /api/admin/images */ }
-function renderGallery() { /* Build thumbnail grid */ }
-function toggleSelection(filename) { /* Add/remove from set */ }
-async function toggleExclusion(filename) { /* POST exclude */ }
-async function deleteImage(filename) { /* DELETE with confirm */ }
-async function restoreImage(filename) { /* POST restore */ }
-async function bulkAction(action) { /* POST /api/admin/images/bulk */ }
-function renderPagination() { /* Page controls */ }
+async function loadImages() {
+  /* GET /api/admin/images */
+}
+function renderGallery() {
+  /* Build thumbnail grid */
+}
+function toggleSelection(filename) {
+  /* Add/remove from set */
+}
+async function toggleExclusion(filename) {
+  /* POST exclude */
+}
+async function deleteImage(filename) {
+  /* DELETE with confirm */
+}
+async function restoreImage(filename) {
+  /* POST restore */
+}
+async function bulkAction(action) {
+  /* POST /api/admin/images/bulk */
+}
+function renderPagination() {
+  /* Page controls */
+}
 ```
 
 ---
@@ -307,6 +344,7 @@ function renderPagination() { /* Page controls */ }
 ## SSE Integration
 
 Existing events used:
+
 - `remove` - When image excluded or deleted
 - `add` - When image included or restored
 
@@ -316,23 +354,23 @@ No new event types needed.
 
 ## Files to Modify
 
-| File | Changes |
-|------|---------|
-| `server.js` | Add 6 new endpoints, modify `/api/images`, add exclusion file handling |
-| `public/admin.html` | Add image management section HTML |
-| `public/js/admin.js` | Add gallery rendering, selection, CRUD operations |
-| `config.json` | Add `admin.trashPath` option |
+| File                 | Changes                                                                |
+| -------------------- | ---------------------------------------------------------------------- |
+| `server.js`          | Add 6 new endpoints, modify `/api/images`, add exclusion file handling |
+| `public/admin.html`  | Add image management section HTML                                      |
+| `public/js/admin.js` | Add gallery rendering, selection, CRUD operations                      |
+| `config.json`        | Add `admin.trashPath` option                                           |
 
 ---
 
 ## Error Handling
 
-| Scenario | Response |
-|----------|----------|
-| Image not found | 404 with message |
-| Permission denied | 500 with error details |
-| Bulk partial failure | 200 with per-item results |
-| Trash directory missing | Create on first delete |
+| Scenario                | Response                  |
+| ----------------------- | ------------------------- |
+| Image not found         | 404 with message          |
+| Permission denied       | 500 with error details    |
+| Bulk partial failure    | 200 with per-item results |
+| Trash directory missing | Create on first delete    |
 
 ---
 
