@@ -522,6 +522,7 @@ let currentPage = 1;
 let currentFilter = 'all';
 let searchQuery = '';
 const imagesPerPage = 24;
+let selectedImages = new Set();
 
 async function loadImages() {
   const gallery = document.getElementById('image-gallery');
@@ -567,6 +568,7 @@ function renderGallery() {
       const classes = ['gallery-item'];
       if (img.excluded) classes.push('excluded');
       if (img.deleted) classes.push('deleted');
+      if (selectedImages.has(img.filename)) classes.push('selected');
 
       // Determine image source based on trash status
       const imgSrc = img.deleted
@@ -595,8 +597,14 @@ function renderGallery() {
         `;
       }
 
+      const escapedFilename = img.filename.replace(/'/g, "\\'");
+
       return `
         <div class="${classes.join(' ')}" data-filename="${img.filename}">
+          <input type="checkbox" class="checkbox"
+                 ${selectedImages.has(img.filename) ? 'checked' : ''}
+                 onchange="toggleSelection('${escapedFilename}')"
+                 aria-label="Select ${img.filename}">
           <img src="${imgSrc}" loading="lazy" alt="${img.filename}">
           <div class="filename" title="${img.filename}">${img.filename}</div>
           <div class="actions">
@@ -608,6 +616,7 @@ function renderGallery() {
     .join('');
 
   renderPagination(filtered.length);
+  updateBulkControls();
 }
 
 function renderPagination(total) {
@@ -763,6 +772,129 @@ async function permanentDeleteImage(filename) {
   }
 }
 
+// Selection functions
+function toggleSelection(filename) {
+  if (selectedImages.has(filename)) {
+    selectedImages.delete(filename);
+  } else {
+    selectedImages.add(filename);
+  }
+  renderGallery();
+}
+
+function toggleSelectAll() {
+  const isTrashView = currentFilter === 'trash';
+  const checkbox = isTrashView
+    ? document.getElementById('select-all-trash')
+    : document.getElementById('select-all');
+
+  const visibleFilenames = getVisibleFilenames();
+
+  if (checkbox && checkbox.checked) {
+    visibleFilenames.forEach((f) => selectedImages.add(f));
+  } else {
+    visibleFilenames.forEach((f) => selectedImages.delete(f));
+  }
+  renderGallery();
+}
+
+function getVisibleFilenames() {
+  let filtered = allImages;
+  if (searchQuery) {
+    filtered = allImages.filter((img) =>
+      img.filename.toLowerCase().includes(searchQuery)
+    );
+  }
+  return filtered.map((img) => img.filename);
+}
+
+function updateBulkControls() {
+  const count = selectedImages.size;
+  const isTrashView = currentFilter === 'trash';
+
+  const bulkControls = document.getElementById('bulk-controls');
+  const bulkControlsTrash = document.getElementById('bulk-controls-trash');
+
+  if (isTrashView) {
+    if (bulkControls) bulkControls.style.display = 'none';
+    if (bulkControlsTrash) bulkControlsTrash.style.display = count > 0 ? 'flex' : 'none';
+    const countEl = document.getElementById('selected-count-trash');
+    if (countEl) countEl.textContent = `${count} selected`;
+  } else {
+    if (bulkControlsTrash) bulkControlsTrash.style.display = 'none';
+    if (bulkControls) bulkControls.style.display = count > 0 ? 'flex' : 'none';
+    const countEl = document.getElementById('selected-count');
+    if (countEl) countEl.textContent = `${count} selected`;
+  }
+
+  // Update select-all checkbox state
+  const visibleFilenames = getVisibleFilenames();
+  const allSelected = visibleFilenames.length > 0 && visibleFilenames.every((f) => selectedImages.has(f));
+  const selectAllCheckbox = isTrashView
+    ? document.getElementById('select-all-trash')
+    : document.getElementById('select-all');
+  if (selectAllCheckbox) {
+    selectAllCheckbox.checked = allSelected;
+  }
+}
+
+async function bulkAction(action) {
+  const count = selectedImages.size;
+  if (count === 0) return;
+
+  const actionLabels = {
+    exclude: 'exclude from slideshow',
+    include: 'include in slideshow',
+    delete: 'move to trash',
+    restore: 'restore from trash',
+    'permanent-delete': 'PERMANENTLY DELETE',
+  };
+
+  const warningText = action === 'permanent-delete' ? '\n\nThis cannot be undone!' : '';
+
+  const confirmed = await showConfirmDialog(
+    'Confirm Bulk Action',
+    `${actionLabels[action].toUpperCase()} ${count} image(s)?${warningText}`
+  );
+
+  if (!confirmed) return;
+
+  try {
+    const res = await fetch('/api/admin/images/bulk', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action,
+        filenames: Array.from(selectedImages),
+      }),
+    });
+
+    const result = await res.json();
+    const successCount = result.results.filter((r) => r.success).length;
+    const failCount = result.results.filter((r) => !r.success).length;
+
+    // Clear selection
+    selectedImages.clear();
+
+    // Reload images
+    await loadImages();
+
+    // Update stats if needed
+    if (action === 'delete' || action === 'restore' || action === 'permanent-delete') {
+      updateStats();
+    }
+
+    // Show result
+    if (failCount === 0) {
+      showToast(`${successCount} image(s) processed successfully`, 'success');
+    } else {
+      showToast(`${successCount} succeeded, ${failCount} failed`, 'error');
+    }
+  } catch (err) {
+    showToast('Bulk operation failed: ' + err.message, 'error');
+  }
+}
+
 // Initialize gallery event listeners
 document.addEventListener('DOMContentLoaded', () => {
   const searchInput = document.getElementById('image-search');
@@ -780,8 +912,19 @@ document.addEventListener('DOMContentLoaded', () => {
     filterSelect.addEventListener('change', (e) => {
       currentFilter = e.target.value;
       currentPage = 1;
+      selectedImages.clear(); // Clear selection when filter changes
       loadImages();
     });
+  }
+
+  // Set up select-all checkbox listeners
+  const selectAll = document.getElementById('select-all');
+  const selectAllTrash = document.getElementById('select-all-trash');
+  if (selectAll) {
+    selectAll.addEventListener('change', toggleSelectAll);
+  }
+  if (selectAllTrash) {
+    selectAllTrash.addEventListener('change', toggleSelectAll);
   }
 
   // Load images on page load

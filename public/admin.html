@@ -89,6 +89,31 @@
         </select>
       </div>
 
+      <div class="bulk-controls" id="bulk-controls" style="display: none">
+        <label class="select-all-label">
+          <input type="checkbox" id="select-all" />
+          Select All
+        </label>
+        <span id="selected-count">0 selected</span>
+        <div class="bulk-buttons">
+          <button type="button" onclick="bulkAction('exclude')">Exclude Selected</button>
+          <button type="button" onclick="bulkAction('include')">Include Selected</button>
+          <button type="button" class="btn-danger" onclick="bulkAction('delete')">Delete Selected</button>
+        </div>
+      </div>
+
+      <div class="bulk-controls" id="bulk-controls-trash" style="display: none">
+        <label class="select-all-label">
+          <input type="checkbox" id="select-all-trash" />
+          Select All
+        </label>
+        <span id="selected-count-trash">0 selected</span>
+        <div class="bulk-buttons">
+          <button type="button" onclick="bulkAction('restore')">Restore Selected</button>
+          <button type="button" class="btn-danger" onclick="bulkAction('permanent-delete')">Permanently Delete</button>
+        </div>
+      </div>
+
       <div id="image-gallery" class="image-gallery" aria-live="polite"></div>
 
       <div id="pagination" class="pagination" role="navigation" aria-label="Gallery pagination"></div>
