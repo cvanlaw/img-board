@@ -14,9 +14,9 @@
     "preprocess": "node preprocessor.js",
     "dev": "NODE_ENV=development node server.js",
     "dev:preprocess": "NODE_ENV=development node preprocessor.js",
-    "test": "jest --passWithNoTests",
-    "test:unit": "jest --testPathPatterns=tests/unit --passWithNoTests",
-    "test:integration": "jest --testPathPatterns=tests/integration --runInBand --passWithNoTests"
+    "test": "node --no-webstorage ./node_modules/.bin/jest --passWithNoTests",
+    "test:unit": "node --no-webstorage ./node_modules/.bin/jest --testPathPatterns=tests/unit --passWithNoTests",
+    "test:integration": "node --no-webstorage ./node_modules/.bin/jest --testPathPatterns=tests/integration --runInBand --passWithNoTests"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
