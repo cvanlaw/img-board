@@ -28,7 +28,11 @@ button {
   cursor: pointer;
 }
 button:hover { background: #0056b3; }
-button:disabled { background: #ccc; cursor: not-allowed; }
+button:disabled {
+  background: #6c757d !important;
+  cursor: wait;
+  opacity: 0.6;
+}
 .success { color: green; }
 .error { color: red; }
 .stat { font-size: 2rem; font-weight: bold; }
@@ -136,4 +140,54 @@ input:invalid:focus {
 .message.error::before {
   content: "⚠ ";
   font-weight: bold;
+}
+
+/* Dialog styling */
+dialog {
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1.5rem;
+  min-width: 400px;
+  max-width: 90vw;
+}
+
+dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+dialog h3 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  color: #212529;
+}
+
+dialog p {
+  margin-bottom: 0;
+  color: #495057;
+}
+
+.dialog-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  margin-top: 1.5rem;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid #6c757d;
+  color: #6c757d;
+}
+
+.btn-secondary:hover {
+  background: #6c757d;
+  color: white;
+}
+
+.btn-danger {
+  background: #dc3545;
+}
+
+.btn-danger:hover {
+  background: #c82333;
 }

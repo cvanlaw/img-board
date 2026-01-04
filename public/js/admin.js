@@ -1,3 +1,42 @@
+// Confirmation dialog helper
+function showConfirmDialog(title, message) {
+  return new Promise((resolve) => {
+    const dialog = document.getElementById('confirm-dialog');
+    document.getElementById('confirm-title').textContent = title;
+    document.getElementById('confirm-message').textContent = message;
+
+    const handleConfirm = () => {
+      dialog.close();
+      cleanup();
+      resolve(true);
+    };
+
+    const handleCancel = () => {
+      dialog.close();
+      cleanup();
+      resolve(false);
+    };
+
+    const handleEscape = (e) => {
+      if (e.key === 'Escape') {
+        handleCancel();
+      }
+    };
+
+    const cleanup = () => {
+      document.getElementById('confirm-ok').removeEventListener('click', handleConfirm);
+      document.getElementById('confirm-cancel').removeEventListener('click', handleCancel);
+      dialog.removeEventListener('keydown', handleEscape);
+    };
+
+    document.getElementById('confirm-ok').addEventListener('click', handleConfirm);
+    document.getElementById('confirm-cancel').addEventListener('click', handleCancel);
+    dialog.addEventListener('keydown', handleEscape);
+
+    dialog.showModal();
+  });
+}
+
 async function loadConfig() {
   try {
     const res = await fetch('/api/admin/config');
@@ -34,6 +73,11 @@ async function saveSlideshow() {
   }
 
   const interval = Math.round(intervalMinutes * 60000);
+  const btn = document.getElementById('save-slideshow-btn');
+  const originalText = btn.textContent;
+
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
 
   try {
     const res = await fetch('/api/admin/config', {
@@ -50,6 +94,9 @@ async function saveSlideshow() {
     }
   } catch (err) {
     showMessage('slideshow-message', 'Error: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
   }
 }
 
@@ -62,9 +109,17 @@ async function savePreprocessing() {
     return;
   }
 
-  if (!confirm(`This will reprocess ALL images with ${width}x${height}. Continue?`)) {
-    return;
-  }
+  const confirmed = await showConfirmDialog(
+    'Confirm Reprocessing',
+    `This will reprocess ALL images with ${width}x${height}. Continue?`
+  );
+  if (!confirmed) return;
+
+  const btn = document.getElementById('save-preprocessing-btn');
+  const originalText = btn.textContent;
+
+  btn.disabled = true;
+  btn.textContent = 'Saving...';
 
   try {
     const res = await fetch('/api/admin/config', {
@@ -89,13 +144,24 @@ async function savePreprocessing() {
     }
   } catch (err) {
     showMessage('preprocessing-message', 'Error: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
   }
 }
 
 async function manualReprocess() {
-  if (!confirm('Reprocess all images with current settings?')) {
-    return;
-  }
+  const confirmed = await showConfirmDialog(
+    'Confirm Reprocessing',
+    'Reprocess all images with current settings?'
+  );
+  if (!confirmed) return;
+
+  const btn = document.getElementById('manual-reprocess-btn');
+  const originalText = btn.textContent;
+
+  btn.disabled = true;
+  btn.textContent = 'Processing...';
 
   try {
     const res = await fetch('/api/admin/reprocess', { method: 'POST' });
@@ -110,6 +176,9 @@ async function manualReprocess() {
     }
   } catch (err) {
     showMessage('preprocessing-message', 'Error: ' + err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = originalText;
   }
 }
 
@@ -312,6 +381,29 @@ async function uploadFiles() {
   }
 }
 
+// Smart polling with visibility detection
+let pollInterval;
+
+function startPolling() {
+  pollInterval = setInterval(updateStats, 5000);
+}
+
+function stopPolling() {
+  if (pollInterval) {
+    clearInterval(pollInterval);
+    pollInterval = null;
+  }
+}
+
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) {
+    stopPolling();
+  } else {
+    updateStats(); // Immediate refresh on return
+    startPolling();
+  }
+});
+
 loadConfig();
 updateStats();
-setInterval(updateStats, 5000);
+startPolling();

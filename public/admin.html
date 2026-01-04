@@ -52,7 +52,7 @@
              aria-describedby="interval-hint" />
       <small id="interval-hint">Minimum: 0.1 minutes</small>
     </label><br>
-    <button onclick="saveSlideshow()">Save Slideshow Settings</button>
+    <button id="save-slideshow-btn" onclick="saveSlideshow()">Save Slideshow Settings</button>
     <p id="slideshow-message" role="status" aria-live="polite"></p>
   </section>
 
@@ -70,8 +70,8 @@
              aria-describedby="height-hint" />
       <small id="height-hint">Minimum: 1 pixel</small>
     </label><br>
-    <button onclick="savePreprocessing()">Save & Reprocess All Images</button>
-    <button onclick="manualReprocess()">Reprocess Now</button>
+    <button id="save-preprocessing-btn" onclick="savePreprocessing()">Save & Reprocess All Images</button>
+    <button id="manual-reprocess-btn" onclick="manualReprocess()">Reprocess Now</button>
     <p id="preprocessing-message" role="status" aria-live="polite"></p>
     <div id="progress-container" style="display: none;">
       <div class="progress-bar" role="progressbar"
@@ -82,6 +82,15 @@
       <p id="progress-text">Processing: 0/0</p>
     </div>
   </section>
+
+  <dialog id="confirm-dialog">
+    <h3 id="confirm-title">Confirm Action</h3>
+    <p id="confirm-message"></p>
+    <div class="dialog-actions">
+      <button id="confirm-cancel" class="btn-secondary">Cancel</button>
+      <button id="confirm-ok" class="btn-danger">Confirm</button>
+    </div>
+  </dialog>
 
   <script src="/js/admin.js"></script>
 </body>
