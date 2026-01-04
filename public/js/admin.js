@@ -1,3 +1,58 @@
+// Toast notification system
+function showToast(message, type = 'info', duration = 4000) {
+  const container = document.getElementById('toast-container');
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `
+    <span class="toast-icon">${type === 'success' ? '\u2713' : '\u26A0'}</span>
+    <span class="toast-message">${message}</span>
+  `;
+  container.appendChild(toast);
+
+  setTimeout(() => {
+    toast.classList.add('toast-exit');
+    setTimeout(() => toast.remove(), 300);
+  }, duration);
+}
+
+// Unsaved changes tracking
+let hasUnsavedChanges = false;
+
+function markAsUnsaved() {
+  hasUnsavedChanges = true;
+}
+
+function clearUnsavedChanges() {
+  hasUnsavedChanges = false;
+}
+
+window.addEventListener('beforeunload', (e) => {
+  if (hasUnsavedChanges) {
+    e.preventDefault();
+    e.returnValue = '';
+  }
+});
+
+// ETA calculation for reprocessing
+let processingStartTime = null;
+
+function formatTime(seconds) {
+  if (seconds < 60) return `${Math.round(seconds)}s`;
+  if (seconds < 3600) return `${Math.round(seconds / 60)}m`;
+  return `${Math.round(seconds / 3600)}h`;
+}
+
+function calculateETA(completed, total) {
+  if (!processingStartTime || completed === 0) return null;
+
+  const remaining = total - completed;
+  const elapsed = Date.now() - processingStartTime;
+  const rate = completed / (elapsed / 1000); // images per second
+  const etaSeconds = remaining / rate;
+
+  return formatTime(etaSeconds);
+}
+
 // Confirmation dialog helper
 function showConfirmDialog(title, message) {
   return new Promise((resolve) => {
@@ -68,7 +123,7 @@ async function saveSlideshow() {
   const intervalMinutes = parseFloat(document.getElementById('interval').value);
 
   if (intervalMinutes < 0.1) {
-    showMessage('slideshow-message', 'Interval must be at least 0.1 minutes', 'error');
+    showToast('Interval must be at least 0.1 minutes', 'error');
     return;
   }
 
@@ -87,13 +142,14 @@ async function saveSlideshow() {
     });
 
     if (res.ok) {
-      showMessage('slideshow-message', 'Settings saved!', 'success');
+      showToast('Slideshow settings saved!', 'success');
+      clearUnsavedChanges();
     } else {
       const error = await res.json();
-      showMessage('slideshow-message', 'Error: ' + error.error, 'error');
+      showToast('Error: ' + error.error, 'error');
     }
   } catch (err) {
-    showMessage('slideshow-message', 'Error: ' + err.message, 'error');
+    showToast('Error: ' + err.message, 'error');
   } finally {
     btn.disabled = false;
     btn.textContent = originalText;
@@ -105,7 +161,7 @@ async function savePreprocessing() {
   const height = parseInt(document.getElementById('height').value);
 
   if (width < 1 || height < 1) {
-    showMessage('preprocessing-message', 'Width and height must be positive', 'error');
+    showToast('Width and height must be positive', 'error');
     return;
   }
 
@@ -132,18 +188,20 @@ async function savePreprocessing() {
 
     if (!res.ok) {
       const error = await res.json();
-      showMessage('preprocessing-message', 'Error: ' + error.error, 'error');
+      showToast('Error: ' + error.error, 'error');
       return;
     }
 
     const result = await res.json();
+    clearUnsavedChanges();
     if (result.reprocessing) {
-      showMessage('preprocessing-message', 'Reprocessing started...', 'success');
+      showToast('Reprocessing started...', 'success');
       document.getElementById('progress-container').style.display = 'block';
+      processingStartTime = Date.now();
       monitorReprocessing();
     }
   } catch (err) {
-    showMessage('preprocessing-message', 'Error: ' + err.message, 'error');
+    showToast('Error: ' + err.message, 'error');
   } finally {
     btn.disabled = false;
     btn.textContent = originalText;
@@ -168,14 +226,15 @@ async function manualReprocess() {
     const result = await res.json();
 
     if (res.ok) {
-      showMessage('preprocessing-message', 'Reprocessing started...', 'success');
+      showToast('Reprocessing started...', 'success');
       document.getElementById('progress-container').style.display = 'block';
+      processingStartTime = Date.now();
       monitorReprocessing();
     } else {
-      showMessage('preprocessing-message', 'Error: ' + result.error, 'error');
+      showToast('Error: ' + result.error, 'error');
     }
   } catch (err) {
-    showMessage('preprocessing-message', 'Error: ' + err.message, 'error');
+    showToast('Error: ' + err.message, 'error');
   } finally {
     btn.disabled = false;
     btn.textContent = originalText;
@@ -197,9 +256,17 @@ async function monitorReprocessing() {
         progressLabel.textContent = percent + '%';
       }
 
-      document.getElementById('progress-text').textContent =
-        `Processing: ${status.completed}/${status.total}` +
-        (status.failed ? ` (${status.failed} failed)` : '');
+      let progressText = `Processing: ${status.completed}/${status.total}`;
+      if (status.failed) {
+        progressText += ` (${status.failed} failed)`;
+      }
+
+      const eta = calculateETA(status.completed, status.total);
+      if (eta) {
+        progressText += ` - ETA: ${eta}`;
+      }
+
+      document.getElementById('progress-text').textContent = progressText;
 
       setTimeout(monitorReprocessing, 1000);
     } else {
@@ -212,6 +279,7 @@ async function monitorReprocessing() {
       }
 
       document.getElementById('progress-text').textContent = 'Complete!';
+      processingStartTime = null;
       setTimeout(() => {
         document.getElementById('progress-container').style.display = 'none';
         updateStats();
@@ -219,6 +287,7 @@ async function monitorReprocessing() {
     }
   } catch (err) {
     document.getElementById('progress-container').style.display = 'none';
+    processingStartTime = null;
   }
 }
 
@@ -257,6 +326,12 @@ document.addEventListener('DOMContentLoaded', () => {
     handleFiles(e.target.files);
     fileInput.value = ''; // Reset for re-selection
   });
+
+  // Track unsaved changes on settings inputs
+  document.querySelectorAll('#interval, #width, #height').forEach(input => {
+    input.addEventListener('change', markAsUnsaved);
+    input.addEventListener('input', markAsUnsaved);
+  });
 });
 
 function handleFiles(fileList) {
@@ -267,15 +342,15 @@ function handleFiles(fileList) {
     const ext = '.' + file.name.split('.').pop().toLowerCase();
 
     if (!validExtensions.includes(ext)) {
-      showMessage('upload-message', `Skipped ${file.name}: invalid type`, 'error');
+      showToast(`Skipped ${file.name}: invalid type`, 'error');
       continue;
     }
     if (file.size > maxSize) {
-      showMessage('upload-message', `Skipped ${file.name}: exceeds 50MB`, 'error');
+      showToast(`Skipped ${file.name}: exceeds 50MB`, 'error');
       continue;
     }
     if (filesToUpload.length >= 10) {
-      showMessage('upload-message', 'Maximum 10 files allowed', 'error');
+      showToast('Maximum 10 files allowed', 'error');
       break;
     }
 
@@ -388,14 +463,14 @@ async function uploadFiles() {
       xhr.send(formData);
     });
 
-    showMessage('upload-message', response.message, 'success');
+    showToast(response.message, 'success');
     clearUploadQueue();
 
     // Refresh stats after a delay to allow processing
     setTimeout(updateStats, 3000);
 
   } catch (err) {
-    showMessage('upload-message', 'Upload failed: ' + (err.error || err.message), 'error');
+    showToast('Upload failed: ' + (err.error || err.message), 'error');
   } finally {
     progressBar.style.display = 'none';
     updateUploadButton();
