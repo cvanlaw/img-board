@@ -49,14 +49,20 @@ docker compose logs -f
 
 # Stop container
 docker compose down
+
+# Run tests
+npm test
 ```
 
 Access the slideshow at `https://localhost:3000` and admin interface at `https://localhost:3000/admin`.
 
 ## Documentation
 
-- **[Architecture & Implementation Guide](docs/ARCHITECTURE.md)** - Complete technical specification with implementation phases
-- **[Implementation Tasks](docs/tasks/)** - 11 INVEST-compliant tasks with acceptance criteria and code examples
+- **[Architecture & Implementation Guide](docs/ARCHITECTURE.md)** - Complete technical specification
+- **[Implementation Tasks](docs/tasks/)** - 18 INVEST-compliant tasks with acceptance criteria
+- **[Testing Guide](docs/TESTING.md)** - Test infrastructure and patterns
+- **[NAS Setup](docs/NAS_SETUP.md)** - NFS server configuration
+- **[Deployment Guide](docs/DEPLOYMENT_DESIGN.md)** - Production deployment
 
 ## Configuration
 

@@ -28,6 +28,11 @@ Two-process system running in Docker container:
    - Broadcasts updates via SSE to connected clients
    - Provides admin API for live configuration changes
 
+**Shared Utilities** (`lib/utils.js`):
+- `shuffleArray()` - Fisher-Yates shuffle for image randomization
+- `deepMerge()` - Recursive merge for partial config updates
+- `ipMatches()` - IP pattern matching for admin access control
+
 **File-Based IPC:**
 - `config.json` - Shared configuration watched by both processes for hot reload
 - `.reprocess-trigger` - Signals batch reprocessing (created by admin API, consumed by preprocessor)
@@ -60,9 +65,10 @@ Two-process system running in Docker container:
 1. Project initialization (01) → npm setup, config template
 2. Can parallelize: Preprocessor (02) + Server core (03)
 3. Frontend (04) → SSE integration (05)
-4. Admin API (06) → Admin UI (07) → Config hot reload (08) → Reprocessing (09)
+4. Admin API (06) → Admin UI (07) → Config hot reload (08)
 5. HTTPS (10) can start anytime after server core (03)
 6. Docker deployment (11) after all core features
+7. UX polish (09), testing infrastructure (12-13), image management (10-17)
 
 **Using the /next-task command:**
 - Run `/next-task` to automatically identify the next unstarted task
@@ -74,6 +80,13 @@ Two-process system running in Docker container:
 - Add image to raw directory → appears in slideshow after WebP conversion
 - Delete image from processed directory → removed from slideshow via SSE
 - Change config via admin UI → both processes reload without restart
+
+**Test commands:**
+```bash
+npm test                    # All tests
+npm run test:unit           # Unit tests only
+npm run test:integration    # Integration tests (sequential)
+```
 
 ## Docker Deployment
 
@@ -90,13 +103,30 @@ docker compose logs -f          # View logs
 docker compose down             # Stop
 ```
 
+## Testing
+
+**Framework:** Jest 30 + Supertest + EventSource
+
+**Structure:**
+- `tests/unit/` - Pure function tests (deepMerge, ipMatches, shuffle)
+- `tests/integration/` - API and SSE tests against running server
+- `tests/fixtures/` - Test images and data
+- `docs/TESTING.md` - Detailed testing documentation
+
+**Integration tests require Docker** - they spin up test containers. See `tests/integration/docker-compose.test.yml`.
+
 ## Documentation Structure
 
-- `docs/ARCHITECTURE.md` - Complete technical specification (1,572 lines)
+- `docs/ARCHITECTURE.md` - Complete technical specification
 - `docs/DEPLOYMENT_DESIGN.md` - Shell-script deployment approach
 - `docs/NAS_SETUP.md` - NFS server requirements and configuration
-- `docs/tasks/` - INVEST-compliant implementation tasks with acceptance criteria
-- Each task includes code snippets, testing checklists, and implementation details
+- `docs/TESTING.md` - Test infrastructure and patterns
+- `docs/PHOTO_UPLOAD_DESIGN.md` - Admin upload feature design
+- `docs/ADMIN_UI_IMPROVEMENTS.md` - UX enhancements and accessibility
+- `docs/IMAGE_MANAGEMENT_DESIGN.md` - Exclusion, trash, and gallery features
+- `docs/ADMIN_REDIRECT_DESIGN.md` - Admin route handling
+- `docs/IPHONE_SYNC_EXPLAINED.md` - iPhone-to-NAS sync approaches
+- `docs/tasks/` - INVEST-compliant implementation tasks (01-18)
 
 ## Important Constraints
 
