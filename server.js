@@ -284,6 +284,109 @@ app.get('/api/admin/reprocess-status', async (req, res) => {
   }
 });
 
+// Stub for getTrashFiles - will be implemented in Task 13
+async function getTrashFiles() {
+  try {
+    const trashPath = config.admin?.trashPath;
+    if (!trashPath) return [];
+
+    const files = await fs.readdir(trashPath);
+    return files.filter((f) =>
+      config.imageExtensions.includes(path.extname(f).toLowerCase())
+    );
+  } catch {
+    return [];
+  }
+}
+
+// GET /api/admin/images - List all images with metadata
+app.get('/api/admin/images', async (req, res) => {
+  try {
+    const filter = req.query.filter || 'all';
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 50;
+
+    const processedFiles = await fs.readdir(config.imagePath);
+    const excluded = await loadExcludedImages();
+    const trashFiles = await getTrashFiles();
+
+    let images = [];
+
+    // Build image list with metadata
+    for (const filename of processedFiles) {
+      const ext = path.extname(filename).toLowerCase();
+      if (!config.imageExtensions.includes(ext)) continue;
+
+      const filePath = path.join(config.imagePath, filename);
+      const stats = await fs.stat(filePath);
+
+      images.push({
+        filename,
+        excluded: excluded.includes(filename),
+        deleted: false,
+        size: stats.size,
+        modified: stats.mtimeMs,
+      });
+    }
+
+    // Add trash files if filter is 'all' or 'trash'
+    if (filter === 'all' || filter === 'trash') {
+      const trashPath = config.admin?.trashPath;
+      if (trashPath) {
+        for (const filename of trashFiles) {
+          try {
+            const filePath = path.join(trashPath, filename);
+            const stats = await fs.stat(filePath);
+
+            images.push({
+              filename,
+              excluded: false,
+              deleted: true,
+              size: stats.size,
+              modified: stats.mtimeMs,
+            });
+          } catch {
+            // Skip files that can't be stat'd
+          }
+        }
+      }
+    }
+
+    // Calculate counts before filtering
+    const visibleCount = images.filter((i) => !i.excluded && !i.deleted).length;
+    const excludedCount = excluded.length;
+    const trashCount = trashFiles.length;
+
+    // Apply filter
+    if (filter === 'visible') {
+      images = images.filter((i) => !i.excluded && !i.deleted);
+    } else if (filter === 'excluded') {
+      images = images.filter((i) => i.excluded && !i.deleted);
+    } else if (filter === 'trash') {
+      images = images.filter((i) => i.deleted);
+    }
+
+    // Pagination
+    const total = images.length;
+    const start = (page - 1) * limit;
+    const paginatedImages = images.slice(start, start + limit);
+
+    res.json({
+      images: paginatedImages,
+      total,
+      visible: visibleCount,
+      excluded: excludedCount,
+      trash: trashCount,
+      page,
+      limit,
+      pages: Math.ceil(total / limit),
+    });
+  } catch (err) {
+    log('error', 'Failed to list images', { error: err.message });
+    res.status(500).json({ error: 'Failed to list images' });
+  }
+});
+
 app.get('/api/images', async (req, res) => {
   try {
     const files = await fs.readdir(config.imagePath);
