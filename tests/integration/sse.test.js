@@ -1,12 +1,12 @@
 const { EventSource } = require('eventsource');
+const { execSync } = require('child_process');
 const {
   BASE_URL,
   setupTestDirectories,
   cleanupTestDirectories,
   startContainer,
   stopContainer,
-  waitForHealth,
-  addProcessedImage
+  waitForHealth
 } = require('./helpers');
 
 describe('Server-Sent Events', () => {
@@ -39,8 +39,10 @@ describe('Server-Sent Events', () => {
   test('SSE receives add event when image added', (done) => {
     eventSource = new EventSource(`${BASE_URL}/api/events`);
 
-    eventSource.addEventListener('connected', async () => {
-      await addProcessedImage('sse-test.webp');
+    eventSource.addEventListener('connected', () => {
+      // Create file inside container to trigger Chokidar detection
+      // Host-to-container volume writes don't reliably trigger polling
+      execSync('docker exec slideshow-test touch /mnt/photos/processed/sse-test.webp');
     });
 
     eventSource.addEventListener('add', (event) => {
@@ -48,5 +50,5 @@ describe('Server-Sent Events', () => {
       expect(data.filename).toBe('sse-test.webp');
       done();
     });
-  }, 15000);
+  }, 30000);
 });
