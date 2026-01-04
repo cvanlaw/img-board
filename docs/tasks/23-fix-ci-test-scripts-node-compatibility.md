@@ -13,14 +13,14 @@ Remove the `--no-webstorage` flag from npm test scripts in package.json. This fl
 
 ## Deliverables
 
-- `package.json` - Updated test scripts without the unsupported flag
+- `.github/workflows/ci.yml` - Updated to use Node 25
+- `Dockerfile` - Updated to use node:25-alpine
 
 ## Acceptance Criteria
 
-- [ ] `test` script runs Jest directly without `--no-webstorage`
-- [ ] `test:unit` script runs Jest directly without `--no-webstorage`
-- [ ] `test:integration` script runs Jest directly without `--no-webstorage`
-- [ ] CI workflow passes on GitHub Actions (Node 20)
+- [ ] CI workflow upgraded to Node 25 (supports `--no-webstorage` flag)
+- [ ] Dockerfile upgraded to node:25-alpine
+- [ ] CI workflow passes on GitHub Actions
 
 ## Implementation Details
 
