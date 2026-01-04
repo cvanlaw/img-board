@@ -107,6 +107,8 @@ Write to the plan file (`/Users/cvanlaw/.claude/plans/[plan-id].md`):
 Use the TodoWrite tool to create a checklist from the task's acceptance criteria:
 - Extract each checkbox item from "## Acceptance Criteria"
 - **ALWAYS append these cleanup todos at the end:**
+  - "Run npm run test:unit - all tests must pass"
+  - "Run npm run test:integration - all tests must pass"
   - "Remove completed task file from docs/tasks/ directory"
   - "Commit all changes using /ai-commit"
 - Create todos with status "pending"
@@ -119,6 +121,8 @@ TodoWrite({
     { content: "npm install runs without errors", status: "pending", activeForm: "Running npm install" },
     { content: "config.json contains all configuration options", status: "pending", activeForm: "Creating config.json" },
     // 🔔 MANDATORY CLEANUP TODOS - ALWAYS INCLUDE:
+    { content: "Run npm run test:unit - all tests must pass", status: "pending", activeForm: "Running unit tests" },
+    { content: "Run npm run test:integration - all tests must pass", status: "pending", activeForm: "Running integration tests" },
     { content: "Remove completed task file from docs/tasks/", status: "pending", activeForm: "Removing task file" },
     { content: "Commit all changes using /ai-commit", status: "pending", activeForm: "Committing changes" }
   ]
@@ -158,8 +162,11 @@ After implementation and testing are complete:
 
 ### 9.1 Verify Implementation Success
 - All acceptance criteria from the todo list are marked "completed"
-- All tests pass (if applicable)
+- Run `npm run test:unit` - all unit tests must pass (blocking)
+- Run `npm run test:integration` - all integration tests must pass (blocking)
 - User has confirmed the implementation works
+
+**⚠️ Tests are blocking**: Do NOT proceed to step 9.2 until all tests pass. If tests fail, fix the issues first.
 
 ### 9.2 Remove Task Document
 - Delete the completed task file from `./docs/tasks/` directory
