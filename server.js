@@ -307,6 +307,97 @@ async function ensureTrashDir() {
   }
 }
 
+// Helper functions for bulk operations
+async function performExclude(filename, excluded) {
+  const filePath = path.join(config.imagePath, filename);
+  await fs.access(filePath); // Throws if not found
+
+  const currentExcluded = await loadExcludedImages();
+  let newExcluded;
+
+  if (excluded) {
+    if (!currentExcluded.includes(filename)) {
+      newExcluded = [...currentExcluded, filename];
+    } else {
+      newExcluded = currentExcluded;
+    }
+  } else {
+    newExcluded = currentExcluded.filter((f) => f !== filename);
+  }
+
+  await saveExcludedImages(newExcluded);
+  broadcast(excluded ? 'remove' : 'add', { filename });
+}
+
+async function performSoftDelete(filename) {
+  const trashPath = config.admin?.trashPath;
+  if (!trashPath) {
+    throw new Error('Trash path not configured');
+  }
+
+  const sourcePath = path.join(config.imagePath, filename);
+  const destPath = path.join(trashPath, filename);
+  const metaPath = path.join(trashPath, `${filename}.meta.json`);
+
+  await fs.access(sourcePath); // Throws if not found
+  await ensureTrashDir();
+  await fs.rename(sourcePath, destPath);
+
+  const meta = {
+    deletedAt: Date.now(),
+    originalPath: 'processed',
+  };
+  await fs.writeFile(metaPath, JSON.stringify(meta, null, 2));
+
+  const excluded = await loadExcludedImages();
+  if (excluded.includes(filename)) {
+    await saveExcludedImages(excluded.filter((f) => f !== filename));
+  }
+
+  broadcast('remove', { filename });
+}
+
+async function performRestore(filename) {
+  const trashPath = config.admin?.trashPath;
+  if (!trashPath) {
+    throw new Error('Trash path not configured');
+  }
+
+  const sourcePath = path.join(trashPath, filename);
+  const destPath = path.join(config.imagePath, filename);
+  const metaPath = path.join(trashPath, `${filename}.meta.json`);
+
+  await fs.access(sourcePath); // Throws if not found
+  await fs.rename(sourcePath, destPath);
+
+  try {
+    await fs.unlink(metaPath);
+  } catch {
+    // Ignore if meta file doesn't exist
+  }
+
+  broadcast('add', { filename });
+}
+
+async function performPermanentDelete(filename) {
+  const trashPath = config.admin?.trashPath;
+  if (!trashPath) {
+    throw new Error('Trash path not configured');
+  }
+
+  const filePath = path.join(trashPath, filename);
+  const metaPath = path.join(trashPath, `${filename}.meta.json`);
+
+  await fs.access(filePath); // Throws if not found
+  await fs.unlink(filePath);
+
+  try {
+    await fs.unlink(metaPath);
+  } catch {
+    // Ignore if meta file doesn't exist
+  }
+}
+
 // GET /api/admin/images - List all images with metadata
 app.get('/api/admin/images', async (req, res) => {
   try {
@@ -572,6 +663,80 @@ app.delete('/api/admin/images/:filename/permanent', async (req, res) => {
   } catch (err) {
     log('error', 'Failed to permanently delete image', { error: err.message });
     res.status(500).json({ error: 'Failed to permanently delete image' });
+  }
+});
+
+// POST /api/admin/images/bulk - Bulk operations on multiple images
+app.post('/api/admin/images/bulk', async (req, res) => {
+  try {
+    const { action, filenames } = req.body;
+
+    if (!action || !Array.isArray(filenames) || filenames.length === 0) {
+      return res.status(400).json({
+        error: 'action and filenames array required',
+      });
+    }
+
+    const validActions = [
+      'exclude',
+      'include',
+      'delete',
+      'restore',
+      'permanent-delete',
+    ];
+    if (!validActions.includes(action)) {
+      return res.status(400).json({
+        error: `Invalid action. Must be one of: ${validActions.join(', ')}`,
+      });
+    }
+
+    const results = [];
+
+    for (const filename of filenames) {
+      const safeFilename = path.basename(filename);
+
+      try {
+        switch (action) {
+          case 'exclude':
+            await performExclude(safeFilename, true);
+            break;
+          case 'include':
+            await performExclude(safeFilename, false);
+            break;
+          case 'delete':
+            await performSoftDelete(safeFilename);
+            break;
+          case 'restore':
+            await performRestore(safeFilename);
+            break;
+          case 'permanent-delete':
+            await performPermanentDelete(safeFilename);
+            break;
+        }
+        results.push({ filename: safeFilename, success: true });
+      } catch (err) {
+        results.push({
+          filename: safeFilename,
+          success: false,
+          error: err.message,
+        });
+      }
+    }
+
+    const successCount = results.filter((r) => r.success).length;
+    log('info', 'Bulk operation completed', {
+      action,
+      total: filenames.length,
+      success: successCount,
+    });
+
+    res.json({
+      success: successCount === filenames.length,
+      results,
+    });
+  } catch (err) {
+    log('error', 'Bulk operation failed', { error: err.message });
+    res.status(500).json({ error: 'Bulk operation failed' });
   }
 });
 
