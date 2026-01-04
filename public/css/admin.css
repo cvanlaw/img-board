@@ -5,13 +5,20 @@ body {
   padding: 0 1rem;
 }
 .card {
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  background: #ffffff;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
   padding: 1.5rem;
-  margin: 1rem 0;
-  background: #f9f9f9;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
 }
-h2 { margin-top: 0; }
+.card h2 {
+  margin: 0 0 1rem 0;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #e9ecef;
+  font-size: 1.25rem;
+  color: #212529;
+}
 input {
   padding: 0.5rem;
   margin: 0.5rem 0;
@@ -26,6 +33,7 @@ button {
   border: none;
   border-radius: 4px;
   cursor: pointer;
+  font-size: 0.9375rem;
 }
 button:hover { background: #0056b3; }
 button:disabled {
@@ -33,21 +41,46 @@ button:disabled {
   cursor: wait;
   opacity: 0.6;
 }
+
+/* Button hierarchy */
+.btn-primary {
+  background-color: #0d6efd;
+  font-weight: 600;
+  padding: 0.75rem 1.5rem;
+}
+.btn-primary:hover {
+  background-color: #0b5ed7;
+}
 .success { color: green; }
 .error { color: red; }
 .stat { font-size: 2rem; font-weight: bold; }
 .progress-bar {
   width: 100%;
-  height: 20px;
-  background: #ddd;
-  border-radius: 4px;
+  height: 28px;
+  background: #e9ecef;
+  border-radius: 14px;
   overflow: hidden;
   margin: 1rem 0;
 }
 .progress-fill {
   height: 100%;
-  background: #28a745;
-  transition: width 0.3s;
+  background: linear-gradient(90deg, #28a745 0%, #20c997 100%);
+  transition: width 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 0.5rem;
+  min-width: 3rem;
+}
+.progress-label {
+  color: white;
+  font-weight: 600;
+  font-size: 0.875rem;
+}
+.progress-details {
+  margin-top: 0.5rem;
+  font-size: 0.875rem;
+  color: #6c757d;
 }
 .drop-zone {
   border: 2px dashed #ccc;
@@ -142,6 +175,80 @@ input:invalid:focus {
   font-weight: bold;
 }
 
+/* Statistics grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.stat-card {
+  text-align: center;
+  padding: 1.5rem 1rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 8px;
+  border: 1px solid #dee2e6;
+}
+
+.stat-value {
+  font-size: 2.5rem;
+  font-weight: 700;
+  color: #212529;
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
+.stat-label {
+  font-size: 0.875rem;
+  color: #6c757d;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-weight: 500;
+}
+
+.stats-timestamp {
+  margin-top: 1rem;
+  text-align: center;
+}
+
+/* Form layouts */
+.form-group {
+  display: grid;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.form-group label {
+  font-weight: 500;
+  color: #212529;
+  font-size: 0.9375rem;
+}
+
+.form-group input {
+  margin: 0;
+}
+
+.form-group small {
+  font-size: 0.8125rem;
+  color: #6c757d;
+  margin-top: -0.25rem;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.button-group {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-top: 1rem;
+}
+
 /* Dialog styling */
 dialog {
   border: 1px solid #dee2e6;
@@ -190,4 +297,49 @@ dialog p {
 
 .btn-danger:hover {
   background: #c82333;
+}
+
+/* Responsive design */
+@media (max-width: 600px) {
+  body {
+    padding: 0 0.5rem;
+    margin: 1rem auto;
+  }
+
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .card {
+    padding: 1rem;
+    margin-bottom: 1rem;
+  }
+
+  .card h2 {
+    font-size: 1.125rem;
+  }
+
+  button {
+    width: 100%;
+    margin-right: 0;
+    margin-bottom: 0.5rem;
+  }
+
+  .button-group {
+    flex-direction: column;
+  }
+
+  .button-group button {
+    margin: 0 0 0.5rem 0;
+  }
+
+  dialog {
+    min-width: auto;
+    max-width: 95vw;
+    padding: 1rem;
+  }
 }

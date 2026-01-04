@@ -188,15 +188,29 @@ async function monitorReprocessing() {
     const status = await res.json();
 
     if (status.active) {
-      const percent = (status.completed / status.total) * 100;
-      document.getElementById('progress-fill').style.width = percent + '%';
+      const percent = Math.round((status.completed / status.total) * 100);
+      const progressFill = document.getElementById('progress-fill');
+      const progressLabel = progressFill.querySelector('.progress-label');
+
+      progressFill.style.width = percent + '%';
+      if (progressLabel) {
+        progressLabel.textContent = percent + '%';
+      }
+
       document.getElementById('progress-text').textContent =
         `Processing: ${status.completed}/${status.total}` +
         (status.failed ? ` (${status.failed} failed)` : '');
 
       setTimeout(monitorReprocessing, 1000);
     } else {
-      document.getElementById('progress-fill').style.width = '100%';
+      const progressFill = document.getElementById('progress-fill');
+      const progressLabel = progressFill.querySelector('.progress-label');
+
+      progressFill.style.width = '100%';
+      if (progressLabel) {
+        progressLabel.textContent = '100%';
+      }
+
       document.getElementById('progress-text').textContent = 'Complete!';
       setTimeout(() => {
         document.getElementById('progress-container').style.display = 'none';
@@ -332,10 +346,14 @@ async function uploadFiles() {
 
   const progressBar = document.getElementById('upload-progress');
   const progressFill = document.getElementById('upload-progress-fill');
+  const progressLabel = progressFill.querySelector('.progress-label');
   const uploadBtn = document.getElementById('upload-btn');
 
   progressBar.style.display = 'block';
   progressFill.style.width = '0%';
+  if (progressLabel) {
+    progressLabel.textContent = '0%';
+  }
   uploadBtn.disabled = true;
   showMessage('upload-message', 'Uploading...', '');
 
@@ -344,8 +362,11 @@ async function uploadFiles() {
 
     xhr.upload.addEventListener('progress', (e) => {
       if (e.lengthComputable) {
-        const percent = (e.loaded / e.total) * 100;
+        const percent = Math.round((e.loaded / e.total) * 100);
         progressFill.style.width = percent + '%';
+        if (progressLabel) {
+          progressLabel.textContent = percent + '%';
+        }
       }
     });
 
