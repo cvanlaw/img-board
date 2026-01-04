@@ -1,6 +1,5 @@
 ---
 description: Plan a specific task or identify the next completable task from docs/tasks/
-model: sonnet
 argument-hint: [task-id]
 ---
 
