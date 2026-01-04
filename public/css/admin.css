@@ -103,3 +103,37 @@ button:disabled { background: #ccc; cursor: not-allowed; }
   overflow: hidden;
   white-space: nowrap;
 }
+
+/* Accessibility: Focus indicators */
+input:focus,
+button:focus {
+  outline: 2px solid #0056b3;
+  outline-offset: 2px;
+}
+
+button:focus-visible {
+  outline: 3px solid #0056b3;
+}
+
+/* Accessibility: Input validation states */
+input:invalid {
+  border-color: #dc3545;
+  background-color: #fff5f5;
+}
+
+input:invalid:focus {
+  outline-color: #dc3545;
+}
+
+/* Accessibility: Non-color status indicators */
+[role="status"].success::before,
+.message.success::before {
+  content: "✓ ";
+  font-weight: bold;
+}
+
+[role="status"].error::before,
+.message.error::before {
+  content: "⚠ ";
+  font-weight: bold;
+}
