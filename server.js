@@ -83,6 +83,11 @@ app.use(express.json());
 app.use('/admin', adminIPFilter);
 app.use('/api/admin', adminIPFilter);
 
+// Redirect /admin to /admin.html for user convenience
+app.get('/admin', (req, res) => {
+  res.redirect('/admin.html');
+});
+
 function broadcast(event, data) {
   const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
   sseClients.forEach(client => client.write(message));
