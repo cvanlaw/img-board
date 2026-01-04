@@ -1,11 +1,26 @@
 ---
-description: Identify and plan the next completable task from docs/tasks/ directory
+description: Plan a specific task or identify the next completable task from docs/tasks/
 model: sonnet
+argument-hint: [task-id]
 ---
 
 # Next Task Planner
 
 **You are now in plan mode.** Follow these steps to identify and plan the next task:
+
+## Step 0: Check for User-Specified Task
+
+The user provided: $ARGUMENTS
+
+**If a task ID is specified** (e.g., "18", "task 18", "task-18"):
+1. Extract the numeric task ID from the argument
+2. Use Glob to find the task file: `docs/tasks/{id}-*.md` (e.g., `docs/tasks/18-*.md`)
+3. If found, skip to **Step 3.5: Validate Specified Task**
+4. If not found, show error message and continue to Step 1 to find the next available task
+
+**If no argument provided**, continue to Step 1 below.
+
+---
 
 ## Step 1: Scan Task Directory
 
@@ -55,6 +70,21 @@ Find the first task (by `id`) where:
 A task is considered completed if:
 - Its `status` is "completed", OR
 - All files listed in its `## Deliverables` section exist in the project
+
+## Step 3.5: Validate Specified Task (if user provided task ID)
+
+If the user specified a task ID in Step 0:
+
+1. **Read the task file** and extract `depends_on` array from frontmatter
+2. **Check dependencies** - For each ID in `depends_on`, verify the task is completed (using Step 2 logic)
+3. **If dependencies are unmet**, show a warning but proceed anyway:
+   ```
+   ⚠️ Warning: Task {id} depends on tasks {unmet_ids} which are not yet complete.
+   Proceeding anyway as explicitly requested.
+   ```
+4. **Continue to Step 4** with this task
+
+---
 
 ## Step 4: Read Full Task Details
 
