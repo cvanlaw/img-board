@@ -4,15 +4,29 @@
   "description": "Auto-updating image slideshow for DAKboard",
   "main": "server.js",
   "dependencies": {
-    "express": "^4.18.0",
     "chokidar": "^3.5.0",
-    "sharp": "^0.33.0",
-    "multer": "^1.4.5-lts.1"
+    "express": "^4.18.0",
+    "multer": "^1.4.5-lts.1",
+    "sharp": "^0.33.0"
   },
   "scripts": {
     "start": "node server.js",
     "preprocess": "node preprocessor.js",
     "dev": "NODE_ENV=development node server.js",
-    "dev:preprocess": "NODE_ENV=development node preprocessor.js"
+    "dev:preprocess": "NODE_ENV=development node preprocessor.js",
+    "test": "jest --passWithNoTests",
+    "test:unit": "jest --testPathPatterns=tests/unit --passWithNoTests",
+    "test:integration": "jest --testPathPatterns=tests/integration --runInBand --passWithNoTests"
+  },
+  "devDependencies": {
+    "@types/jest": "^30.0.0",
+    "eventsource": "^4.1.0",
+    "jest": "^30.2.0",
+    "supertest": "^7.1.4"
+  },
+  "jest": {
+    "testEnvironment": "node",
+    "testTimeout": 30000,
+    "setupFilesAfterEnv": ["./tests/setup.js"]
   }
 }
