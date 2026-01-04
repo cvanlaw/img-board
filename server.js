@@ -387,6 +387,55 @@ app.get('/api/admin/images', async (req, res) => {
   }
 });
 
+// POST /api/admin/images/:filename/exclude - Toggle image exclusion
+app.post('/api/admin/images/:filename/exclude', async (req, res) => {
+  try {
+    const filename = path.basename(req.params.filename); // Prevent traversal
+    const { excluded } = req.body;
+
+    if (typeof excluded !== 'boolean') {
+      return res.status(400).json({ error: 'excluded must be a boolean' });
+    }
+
+    // Verify file exists
+    const filePath = path.join(config.imagePath, filename);
+    try {
+      await fs.access(filePath);
+    } catch {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+
+    // Update exclusion list
+    const currentExcluded = await loadExcludedImages();
+    let newExcluded;
+
+    if (excluded) {
+      if (!currentExcluded.includes(filename)) {
+        newExcluded = [...currentExcluded, filename];
+      } else {
+        newExcluded = currentExcluded;
+      }
+    } else {
+      newExcluded = currentExcluded.filter((f) => f !== filename);
+    }
+
+    await saveExcludedImages(newExcluded);
+
+    // Broadcast SSE event
+    if (excluded) {
+      broadcast('remove', { filename });
+    } else {
+      broadcast('add', { filename });
+    }
+
+    log('info', 'Image exclusion toggled', { filename, excluded });
+    res.json({ success: true, filename, excluded });
+  } catch (err) {
+    log('error', 'Failed to toggle exclusion', { error: err.message });
+    res.status(500).json({ error: 'Failed to toggle exclusion' });
+  }
+});
+
 app.get('/api/images', async (req, res) => {
   try {
     const files = await fs.readdir(config.imagePath);
