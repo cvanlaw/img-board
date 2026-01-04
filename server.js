@@ -5,6 +5,7 @@ const path = require('path');
 const fs = require('fs').promises;
 const fsSync = require('fs');
 const chokidar = require('chokidar');
+const multer = require('multer');
 
 let config = require('./config.json');
 const app = express();
@@ -76,6 +77,43 @@ function adminIPFilter(req, res, next) {
   }
   next();
 }
+
+// Multer configuration for file uploads
+const uploadStorage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const config = require('./config.json');
+    cb(null, config.preprocessing.rawImagePath);
+  },
+  filename: (req, file, cb) => {
+    // Sanitize: remove path components, replace unsafe characters
+    const safeName = path.basename(file.originalname).replace(/[^a-zA-Z0-9._-]/g, '_');
+    const uniqueName = `${Date.now()}-${safeName}`;
+    cb(null, uniqueName);
+  }
+});
+
+const uploadFilter = (req, file, cb) => {
+  const config = require('./config.json');
+  const ext = path.extname(file.originalname).toLowerCase();
+  const allowedMimes = ['image/jpeg', 'image/png'];
+
+  if (!config.preprocessing.inputExtensions.includes(ext)) {
+    return cb(new Error(`Invalid extension: ${ext}`), false);
+  }
+  if (!allowedMimes.includes(file.mimetype)) {
+    return cb(new Error(`Invalid MIME type: ${file.mimetype}`), false);
+  }
+  cb(null, true);
+};
+
+const upload = multer({
+  storage: uploadStorage,
+  fileFilter: uploadFilter,
+  limits: {
+    fileSize: 50 * 1024 * 1024, // 50MB
+    files: 10
+  }
+});
 
 app.use(express.static('public'));
 app.use(express.json());
@@ -151,6 +189,44 @@ app.post('/api/admin/config', async (req, res) => {
     log('error', 'Config update failed', { error: err.message });
     res.status(500).json({ error: 'Failed to update configuration', details: err.message });
   }
+});
+
+// POST /api/admin/upload - Upload images to raw directory
+app.post('/api/admin/upload', upload.array('images', 10), (req, res) => {
+  if (!req.files || req.files.length === 0) {
+    return res.status(400).json({ error: 'No files uploaded' });
+  }
+
+  const uploaded = req.files.map(f => ({
+    original: f.originalname,
+    saved: f.filename,
+    size: f.size
+  }));
+
+  log('info', 'Images uploaded', { count: uploaded.length, files: uploaded.map(f => f.saved) });
+  res.json({
+    success: true,
+    uploaded,
+    message: `${uploaded.length} file(s) uploaded. Processing will begin shortly.`
+  });
+});
+
+// Multer error handler
+app.use('/api/admin/upload', (err, req, res, next) => {
+  if (err instanceof multer.MulterError) {
+    if (err.code === 'LIMIT_FILE_SIZE') {
+      return res.status(413).json({ error: 'File too large (max 50MB)' });
+    }
+    if (err.code === 'LIMIT_FILE_COUNT') {
+      return res.status(400).json({ error: 'Too many files (max 10)' });
+    }
+    return res.status(400).json({ error: err.message });
+  }
+  if (err) {
+    log('error', 'Upload error', { error: err.message });
+    return res.status(400).json({ error: err.message });
+  }
+  next();
 });
 
 app.get('/api/admin/stats', async (req, res) => {

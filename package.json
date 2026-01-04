@@ -6,7 +6,8 @@
   "dependencies": {
     "express": "^4.18.0",
     "chokidar": "^3.5.0",
-    "sharp": "^0.33.0"
+    "sharp": "^0.33.0",
+    "multer": "^1.4.5-lts.1"
   },
   "scripts": {
     "start": "node server.js",
