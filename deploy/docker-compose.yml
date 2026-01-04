@@ -15,7 +15,7 @@ services:
       - ./certs/key.pem:/certs/key.pem:ro
       - ./certs/chain.pem:/certs/chain.pem:ro
       # NAS mounts
-      - /mnt/nas/photos/raw:/mnt/photos/raw:ro
+      - /mnt/nas/photos/raw:/mnt/photos/raw
       - /mnt/nas/photos/processed:/mnt/photos/processed
       - /mnt/nas/photos/archive:/mnt/photos/archive
     healthcheck:
