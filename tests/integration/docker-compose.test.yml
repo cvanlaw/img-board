@@ -1,0 +1,19 @@
+services:
+  slideshow-test:
+    build: ../..
+    container_name: slideshow-test
+    ports:
+      - "3001:3000"
+    volumes:
+      - ./test-data/raw:/mnt/photos/raw
+      - ./test-data/processed:/mnt/photos/processed
+      - ./test-data/archive:/mnt/photos/archive
+      - ./test-config.json:/app/config.json
+    environment:
+      - NODE_ENV=test
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
+      interval: 2s
+      timeout: 5s
+      retries: 10
+      start_period: 5s

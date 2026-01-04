@@ -1,58 +1,3 @@
----
-id: 21
-title: Integration Test Infrastructure
-depends_on: [18, 19]
-status: pending
----
-
-# Task 21: Integration Test Infrastructure
-
-## Description
-
-Create the Docker Compose configuration and helper utilities for running integration tests against a containerized application instance. Tests run on port 3001 to avoid conflicts with development.
-
-## Deliverables
-
-- `tests/integration/docker-compose.test.yml` - Test container configuration
-- `tests/integration/helpers.js` - Container lifecycle and test utilities
-
-## Acceptance Criteria
-
-- [ ] docker-compose.test.yml builds and runs container on port 3001
-- [ ] helpers.js provides setupTestDirectories() and cleanupTestDirectories()
-- [ ] helpers.js provides startContainer() and stopContainer()
-- [ ] helpers.js provides waitForHealth() with configurable timeout
-- [ ] helpers.js provides image manipulation utilities (addProcessedImage, copyTestImage, etc.)
-
-## Implementation Details
-
-### tests/integration/docker-compose.test.yml
-
-```yaml
-services:
-  slideshow-test:
-    build: ../..
-    container_name: slideshow-test
-    ports:
-      - "3001:3000"
-    volumes:
-      - ./test-data/raw:/mnt/photos/raw
-      - ./test-data/processed:/mnt/photos/processed
-      - ./test-data/archive:/mnt/photos/archive
-      - ./test-config.json:/app/config.json
-    environment:
-      - NODE_ENV=test
-    healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "http://localhost:3000/health"]
-      interval: 2s
-      timeout: 5s
-      retries: 10
-      start_period: 5s
-```
-
-### tests/integration/helpers.js
-
-```javascript
 const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs').promises;
@@ -149,12 +94,3 @@ module.exports = {
   listProcessedImages,
   clearProcessedImages
 };
-```
-
-## Testing Checklist
-
-- [ ] `docker compose -f tests/integration/docker-compose.test.yml up -d --build` succeeds
-- [ ] Container responds on http://localhost:3001/health
-- [ ] `docker compose -f tests/integration/docker-compose.test.yml down -v` cleans up
-- [ ] helpers.js exports all required functions
-- [ ] Test data directories created and cleaned up correctly
