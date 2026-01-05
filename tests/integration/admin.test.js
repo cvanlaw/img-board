@@ -12,7 +12,7 @@ describe('Admin Configuration', () => {
     await setupTestDirectories();
     startContainer();
     await waitForHealth();
-  });
+  }, 90000); // 90s timeout for Docker build + container startup
 
   afterAll(async () => {
     stopContainer();
