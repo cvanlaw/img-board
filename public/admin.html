@@ -96,9 +96,19 @@
         </label>
         <span id="selected-count">0 selected</span>
         <div class="bulk-buttons">
-          <button type="button" onclick="bulkAction('exclude')">Exclude Selected</button>
-          <button type="button" onclick="bulkAction('include')">Include Selected</button>
-          <button type="button" class="btn-danger" onclick="bulkAction('delete')">Delete Selected</button>
+          <button type="button" onclick="bulkAction('exclude')">
+            Exclude Selected
+          </button>
+          <button type="button" onclick="bulkAction('include')">
+            Include Selected
+          </button>
+          <button
+            type="button"
+            class="btn-danger"
+            onclick="bulkAction('delete')"
+          >
+            Delete Selected
+          </button>
         </div>
       </div>
 
@@ -109,16 +119,35 @@
         </label>
         <span id="selected-count-trash">0 selected</span>
         <div class="bulk-buttons">
-          <button type="button" onclick="bulkAction('restore')">Restore Selected</button>
-          <button type="button" class="btn-danger" onclick="bulkAction('permanent-delete')">Permanently Delete</button>
+          <button type="button" onclick="bulkAction('restore')">
+            Restore Selected
+          </button>
+          <button
+            type="button"
+            class="btn-danger"
+            onclick="bulkAction('permanent-delete')"
+          >
+            Permanently Delete
+          </button>
         </div>
       </div>
 
       <div id="image-gallery" class="image-gallery" aria-live="polite"></div>
 
-      <div id="pagination" class="pagination" role="navigation" aria-label="Gallery pagination"></div>
+      <div
+        id="pagination"
+        class="pagination"
+        role="navigation"
+        aria-label="Gallery pagination"
+      ></div>
 
-      <div id="gallery-message" class="message" style="display: none" role="status" aria-live="polite"></div>
+      <div
+        id="gallery-message"
+        class="message"
+        style="display: none"
+        role="status"
+        aria-live="polite"
+      ></div>
     </section>
 
     <section class="card" aria-labelledby="slideshow-heading">

@@ -2,7 +2,6 @@ const chokidar = require('chokidar');
 const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs').promises;
-const fsSync = require('fs');
 
 let config = require('./config.json');
 
@@ -110,7 +109,7 @@ async function init() {
   });
 
   const watcher = chokidar.watch(config.preprocessing.rawImagePath, {
-    ignored: /(^|[\/\\])\../,
+    ignored: /(^|[/\\])\../,
     persistent: true,
     ignoreInitial: false,
     awaitWriteFinish: {
@@ -237,11 +236,15 @@ async function handleReprocessTrigger() {
 async function cleanup() {
   try {
     await fs.unlink('./.reprocess-trigger');
-  } catch {}
+  } catch {
+    // File may not exist, ignore
+  }
   setTimeout(async () => {
     try {
       await fs.unlink('./.reprocess-progress.json');
-    } catch {}
+    } catch {
+      // File may not exist, ignore
+    }
   }, 5000);
 }
 

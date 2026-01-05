@@ -1,3 +1,4 @@
+/* global Splide */
 let splide;
 let config = { slideshowInterval: 5000 };
 
@@ -7,7 +8,7 @@ async function init() {
     if (configRes.ok) {
       config = await configRes.json();
     }
-  } catch (e) {
+  } catch {
     console.log('Using default config');
   }
 

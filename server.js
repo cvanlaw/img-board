@@ -240,14 +240,18 @@ app.get('/api/admin/stats', async (req, res) => {
         path.extname(f).toLowerCase()
       )
     ).length;
-  } catch (e) {}
+  } catch {
+    // Directory may not exist yet
+  }
 
   try {
     const processedFiles = await fs.readdir(config.imagePath);
     processedCount = processedFiles.filter((f) =>
       config.imageExtensions.includes(path.extname(f).toLowerCase())
     ).length;
-  } catch (e) {}
+  } catch {
+    // Directory may not exist yet
+  }
 
   res.json({
     raw: rawCount,
@@ -279,7 +283,7 @@ app.get('/api/admin/reprocess-status', async (req, res) => {
       await fs.readFile('./.reprocess-progress.json', 'utf8')
     );
     res.json({ active: true, ...progress });
-  } catch (e) {
+  } catch {
     res.json({ active: false });
   }
 });
@@ -759,7 +763,10 @@ app.get('/api/admin/trash-image/:filename', (req, res) => {
 
   res.sendFile(imagePath, (err) => {
     if (err) {
-      log('error', 'Failed to serve trash image', { filename, error: err.message });
+      log('error', 'Failed to serve trash image', {
+        filename,
+        error: err.message,
+      });
       res.status(404).send('Not found');
     }
   });
@@ -833,7 +840,7 @@ app.get('/images/:filename', (req, res) => {
 });
 
 const watcher = chokidar.watch(config.imagePath, {
-  ignored: /(^|[\/\\])\../,
+  ignored: /(^|[/\\])\../,
   persistent: true,
   ignoreInitial: false,
   awaitWriteFinish: true,

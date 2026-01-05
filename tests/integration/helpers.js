@@ -23,7 +23,9 @@ async function cleanupTestDirectories() {
   await fs.rm(TEST_DATA_DIR, { recursive: true, force: true });
   try {
     await fs.unlink(path.join(__dirname, 'test-config.json'));
-  } catch {}
+  } catch {
+    // File may not exist
+  }
 }
 
 function startContainer() {
@@ -44,7 +46,9 @@ async function waitForHealth(maxAttempts = 30) {
     try {
       const res = await fetch(`${BASE_URL}/health`);
       if (res.ok) return true;
-    } catch {}
+    } catch {
+      // Container not ready yet
+    }
     await new Promise((r) => setTimeout(r, 1000));
   }
   throw new Error('Container did not become healthy');

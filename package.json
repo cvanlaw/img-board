@@ -18,11 +18,17 @@
     "test:unit": "node --no-webstorage ./node_modules/.bin/jest --testPathPatterns=tests/unit --passWithNoTests",
     "test:integration": "node --no-webstorage ./node_modules/.bin/jest --testPathPatterns=tests/integration --runInBand --passWithNoTests",
     "format:check": "prettier --check .",
-    "format:fix": "prettier --write ."
+    "format:fix": "prettier --write .",
+    "lint:check": "eslint .",
+    "lint:fix": "eslint --fix ."
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@types/jest": "^30.0.0",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
     "eventsource": "^4.1.0",
+    "globals": "^17.0.0",
     "jest": "^30.2.0",
     "prettier": "^3.7.4",
     "supertest": "^7.1.4"

@@ -299,7 +299,7 @@ async function monitorReprocessing() {
         updateStats();
       }, 2000);
     }
-  } catch (err) {
+  } catch {
     document.getElementById('progress-container').style.display = 'none';
     processingStartTime = null;
   }
@@ -536,7 +536,8 @@ async function loadImages() {
     allImages = data.images;
     renderGallery();
   } catch (err) {
-    gallery.innerHTML = '<div class="empty-message">Failed to load images</div>';
+    gallery.innerHTML =
+      '<div class="empty-message">Failed to load images</div>';
     showToast('Failed to load images: ' + err.message, 'error');
   }
 }
@@ -674,7 +675,9 @@ function goToPage(page) {
   currentPage = page;
   renderGallery();
   // Scroll gallery into view
-  document.getElementById('image-gallery').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  document
+    .getElementById('image-gallery')
+    .scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 async function toggleExclusion(filename) {
@@ -682,21 +685,29 @@ async function toggleExclusion(filename) {
   if (!img) return;
 
   try {
-    const res = await fetch(`/api/admin/images/${encodeURIComponent(filename)}/exclude`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ excluded: !img.excluded }),
-    });
+    const res = await fetch(
+      `/api/admin/images/${encodeURIComponent(filename)}/exclude`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ excluded: !img.excluded }),
+      }
+    );
 
     if (res.ok) {
       img.excluded = !img.excluded;
       renderGallery();
-      showToast(img.excluded ? 'Image excluded from slideshow' : 'Image included in slideshow', 'success');
+      showToast(
+        img.excluded
+          ? 'Image excluded from slideshow'
+          : 'Image included in slideshow',
+        'success'
+      );
     } else {
       const err = await res.json();
       showToast('Failed: ' + err.error, 'error');
     }
-  } catch (err) {
+  } catch {
     showToast('Failed to toggle exclusion', 'error');
   }
 }
@@ -709,9 +720,12 @@ async function deleteImage(filename) {
   if (!confirmed) return;
 
   try {
-    const res = await fetch(`/api/admin/images/${encodeURIComponent(filename)}`, {
-      method: 'DELETE',
-    });
+    const res = await fetch(
+      `/api/admin/images/${encodeURIComponent(filename)}`,
+      {
+        method: 'DELETE',
+      }
+    );
 
     if (res.ok) {
       allImages = allImages.filter((i) => i.filename !== filename);
@@ -719,19 +733,22 @@ async function deleteImage(filename) {
       showToast('Image moved to trash', 'success');
       updateStats();
     } else {
-      const err = await res.json();
-      showToast('Failed: ' + err.error, 'error');
+      const data = await res.json();
+      showToast('Failed: ' + data.error, 'error');
     }
-  } catch (err) {
+  } catch {
     showToast('Failed to delete image', 'error');
   }
 }
 
 async function restoreImage(filename) {
   try {
-    const res = await fetch(`/api/admin/images/${encodeURIComponent(filename)}/restore`, {
-      method: 'POST',
-    });
+    const res = await fetch(
+      `/api/admin/images/${encodeURIComponent(filename)}/restore`,
+      {
+        method: 'POST',
+      }
+    );
 
     if (res.ok) {
       allImages = allImages.filter((i) => i.filename !== filename);
@@ -739,10 +756,10 @@ async function restoreImage(filename) {
       showToast('Image restored', 'success');
       updateStats();
     } else {
-      const err = await res.json();
-      showToast('Failed: ' + err.error, 'error');
+      const data = await res.json();
+      showToast('Failed: ' + data.error, 'error');
     }
-  } catch (err) {
+  } catch {
     showToast('Failed to restore image', 'error');
   }
 }
@@ -755,19 +772,22 @@ async function permanentDeleteImage(filename) {
   if (!confirmed) return;
 
   try {
-    const res = await fetch(`/api/admin/images/${encodeURIComponent(filename)}/permanent`, {
-      method: 'DELETE',
-    });
+    const res = await fetch(
+      `/api/admin/images/${encodeURIComponent(filename)}/permanent`,
+      {
+        method: 'DELETE',
+      }
+    );
 
     if (res.ok) {
       allImages = allImages.filter((i) => i.filename !== filename);
       renderGallery();
       showToast('Image permanently deleted', 'success');
     } else {
-      const err = await res.json();
-      showToast('Failed: ' + err.error, 'error');
+      const data = await res.json();
+      showToast('Failed: ' + data.error, 'error');
     }
-  } catch (err) {
+  } catch {
     showToast('Failed to permanently delete image', 'error');
   }
 }
@@ -817,7 +837,8 @@ function updateBulkControls() {
 
   if (isTrashView) {
     if (bulkControls) bulkControls.style.display = 'none';
-    if (bulkControlsTrash) bulkControlsTrash.style.display = count > 0 ? 'flex' : 'none';
+    if (bulkControlsTrash)
+      bulkControlsTrash.style.display = count > 0 ? 'flex' : 'none';
     const countEl = document.getElementById('selected-count-trash');
     if (countEl) countEl.textContent = `${count} selected`;
   } else {
@@ -829,7 +850,9 @@ function updateBulkControls() {
 
   // Update select-all checkbox state
   const visibleFilenames = getVisibleFilenames();
-  const allSelected = visibleFilenames.length > 0 && visibleFilenames.every((f) => selectedImages.has(f));
+  const allSelected =
+    visibleFilenames.length > 0 &&
+    visibleFilenames.every((f) => selectedImages.has(f));
   const selectAllCheckbox = isTrashView
     ? document.getElementById('select-all-trash')
     : document.getElementById('select-all');
@@ -850,7 +873,8 @@ async function bulkAction(action) {
     'permanent-delete': 'PERMANENTLY DELETE',
   };
 
-  const warningText = action === 'permanent-delete' ? '\n\nThis cannot be undone!' : '';
+  const warningText =
+    action === 'permanent-delete' ? '\n\nThis cannot be undone!' : '';
 
   const confirmed = await showConfirmDialog(
     'Confirm Bulk Action',
@@ -880,7 +904,11 @@ async function bulkAction(action) {
     await loadImages();
 
     // Update stats if needed
-    if (action === 'delete' || action === 'restore' || action === 'permanent-delete') {
+    if (
+      action === 'delete' ||
+      action === 'restore' ||
+      action === 'permanent-delete'
+    ) {
       updateStats();
     }
 
