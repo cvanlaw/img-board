@@ -3,15 +3,17 @@
 # Default to dev; override with IMGBOARD_ENV=prod
 IMGBOARD_ENV ?= dev
 
+# Compose files
+COMPOSE_BASE := docker-compose.yaml
+COMPOSE_LOCAL := docker-compose.local.yaml
+
 ifeq ($(IMGBOARD_ENV),prod)
-  COMPOSE_FILE := ./deploy/docker-compose.yml
+  DOCKER_COMPOSE := docker compose -f $(COMPOSE_BASE)
   HEALTH_CMD := curl -sf -k https://localhost:3000/health
 else
-  COMPOSE_FILE := ./docker-compose.yml
+  DOCKER_COMPOSE := docker compose -f $(COMPOSE_BASE) -f $(COMPOSE_LOCAL)
   HEALTH_CMD := curl -sf http://localhost:3000/health
 endif
-
-DOCKER_COMPOSE := docker compose -f $(COMPOSE_FILE)
 
 help:
 	@echo "img-board Makefile (IMGBOARD_ENV=$(IMGBOARD_ENV))"
