@@ -8,6 +8,7 @@ const {
   imagesProcessedTotal,
   imagesFailedTotal,
   processingDuration,
+  processingQueueDepth,
   imageSizeBytes,
   compressionRatio,
 } = require('./lib/preprocessor-metrics');
@@ -183,7 +184,12 @@ async function init() {
   watcher
     .on('add', async (filePath) => {
       if (isValidImageExtension(filePath)) {
-        await processImage(filePath);
+        processingQueueDepth.inc();
+        try {
+          await processImage(filePath);
+        } finally {
+          processingQueueDepth.dec();
+        }
       } else {
         log('warn', 'Skipping unsupported file format', {
           path: filePath,
@@ -255,6 +261,7 @@ async function handleReprocessTrigger() {
     const errors = [];
 
     for (const file of files) {
+      processingQueueDepth.inc();
       try {
         await processImage(file);
         completed++;
@@ -265,6 +272,8 @@ async function handleReprocessTrigger() {
           file: path.basename(file),
           error: err.message,
         });
+      } finally {
+        processingQueueDepth.dec();
       }
 
       await fs.writeFile(
