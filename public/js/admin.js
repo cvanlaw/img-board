@@ -589,6 +589,12 @@ function renderGallery() {
         `;
       } else {
         actionButtons = `
+          <button class="btn-icon rotate-btn" onclick="rotateImage('${img.filename}', 'ccw')" title="Rotate counter-clockwise" aria-label="Rotate counter-clockwise">
+            &#x21BA;
+          </button>
+          <button class="btn-icon rotate-btn" onclick="rotateImage('${img.filename}', 'cw')" title="Rotate clockwise" aria-label="Rotate clockwise">
+            &#x21BB;
+          </button>
           <button class="btn-icon" onclick="toggleExclusion('${img.filename}')" title="${img.excluded ? 'Include' : 'Exclude'}">
             ${img.excluded ? '&#x1F441;' : '&#x1F6AB;'}
           </button>
@@ -792,6 +798,52 @@ async function permanentDeleteImage(filename) {
   }
 }
 
+async function rotateImage(filename, direction) {
+  // Find the gallery item and add loading state
+  const galleryItem = document.querySelector(
+    `.gallery-item[data-filename="${filename}"]`
+  );
+  if (galleryItem) {
+    galleryItem.classList.add('rotating');
+  }
+
+  try {
+    const res = await fetch(
+      `/api/admin/images/${encodeURIComponent(filename)}/rotate`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ direction }),
+      }
+    );
+
+    if (res.ok) {
+      // Refresh the thumbnail with cache-busting timestamp
+      if (galleryItem) {
+        const img = galleryItem.querySelector('img');
+        if (img) {
+          const url = new URL(img.src, window.location.origin);
+          url.searchParams.set('t', Date.now());
+          img.src = url.toString();
+        }
+      }
+      showToast(
+        `Image rotated ${direction === 'cw' ? 'clockwise' : 'counter-clockwise'}`,
+        'success'
+      );
+    } else {
+      const data = await res.json();
+      showToast('Failed: ' + data.error, 'error');
+    }
+  } catch {
+    showToast('Failed to rotate image', 'error');
+  } finally {
+    if (galleryItem) {
+      galleryItem.classList.remove('rotating');
+    }
+  }
+}
+
 // Selection functions
 function toggleSelection(filename) {
   if (selectedImages.has(filename)) {
@@ -871,6 +923,8 @@ async function bulkAction(action) {
     delete: 'move to trash',
     restore: 'restore from trash',
     'permanent-delete': 'PERMANENTLY DELETE',
+    'rotate-cw': 'rotate clockwise',
+    'rotate-ccw': 'rotate counter-clockwise',
   };
 
   const warningText =

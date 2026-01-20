@@ -67,6 +67,22 @@ function rebuildSlideshow(images) {
   images.forEach((filename) => addSlide(filename));
 }
 
+function updateSlide(filename, timestamp) {
+  const slides = splide.Components.Elements.slides;
+  for (let i = 0; i < slides.length; i++) {
+    if (slides[i].dataset.filename === filename) {
+      const img = slides[i].querySelector('img');
+      if (img) {
+        // Add cache-busting timestamp to force reload
+        const url = new URL(img.src, window.location.origin);
+        url.searchParams.set('t', timestamp);
+        img.src = url.toString();
+      }
+      break;
+    }
+  }
+}
+
 function connectSSE() {
   const eventSource = new EventSource('/api/events');
 
@@ -97,6 +113,11 @@ function connectSSE() {
       splide.options.interval = update.slideshowInterval;
       console.log('Slideshow interval updated to', update.slideshowInterval);
     }
+  });
+
+  eventSource.addEventListener('update', (e) => {
+    const { filename, timestamp } = JSON.parse(e.data);
+    updateSlide(filename, timestamp);
   });
 }
 
