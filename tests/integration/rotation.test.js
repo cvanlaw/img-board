@@ -1,8 +1,7 @@
-const EventSource = require('eventsource');
+const { EventSource } = require('eventsource');
 const sharp = require('sharp');
 const {
   BASE_URL,
-  TEST_DATA_DIR,
   setupTestDirectories,
   cleanupTestDirectories,
   startContainer,
@@ -10,7 +9,6 @@ const {
   waitForHealth,
   addProcessedImage,
 } = require('./helpers');
-const path = require('path');
 
 describe('Image Rotation', () => {
   beforeAll(async () => {

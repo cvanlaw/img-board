@@ -722,9 +722,7 @@ app.post('/api/admin/images/:filename/rotate', async (req, res) => {
     const { direction } = req.body;
 
     if (direction !== 'cw' && direction !== 'ccw') {
-      return res
-        .status(400)
-        .json({ error: 'direction must be "cw" or "ccw"' });
+      return res.status(400).json({ error: 'direction must be "cw" or "ccw"' });
     }
 
     // Verify file exists
