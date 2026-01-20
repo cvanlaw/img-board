@@ -7,6 +7,14 @@ const fsSync = require('fs');
 const chokidar = require('chokidar');
 const multer = require('multer');
 const { shuffleArray, deepMerge, ipMatches } = require('./lib/utils');
+const {
+  register,
+  httpRequestDuration,
+  sseClientsConnected,
+  sseBroadcastsTotal,
+  imagesServedTotal,
+  errorsTotal,
+} = require('./lib/metrics');
 
 let config = require('./config.json');
 const app = express();
@@ -101,6 +109,16 @@ const upload = multer({
   },
 });
 
+// Metrics middleware - track request duration (must be first to capture all requests)
+app.use((req, res, next) => {
+  const end = httpRequestDuration.startTimer();
+  res.on('finish', () => {
+    const route = req.route?.path || req.path;
+    end({ method: req.method, route, status: res.statusCode });
+  });
+  next();
+});
+
 app.use(express.static('public'));
 app.use(express.json());
 
@@ -115,6 +133,7 @@ app.get('/admin', (req, res) => {
 function broadcast(event, data) {
   const message = `event: ${event}\ndata: ${JSON.stringify(data)}\n\n`;
   sseClients.forEach((client) => client.write(message));
+  sseBroadcastsTotal.inc({ event });
   log('debug', 'SSE broadcast', { event, clientCount: sseClients.length });
 }
 
@@ -127,10 +146,12 @@ app.get('/api/events', (req, res) => {
   res.write('event: connected\ndata: {}\n\n');
 
   sseClients.push(res);
+  sseClientsConnected.set(sseClients.length);
   log('info', 'SSE client connected', { total: sseClients.length });
 
   req.on('close', () => {
     sseClients = sseClients.filter((client) => client !== res);
+    sseClientsConnected.set(sseClients.length);
     log('info', 'SSE client disconnected', { remaining: sseClients.length });
   });
 });
@@ -140,6 +161,11 @@ app.get('/health', (req, res) => {
     status: 'ok',
     uptime: process.uptime(),
   });
+});
+
+app.get('/metrics', async (req, res) => {
+  res.set('Content-Type', register.contentType);
+  res.end(await register.metrics());
 });
 
 app.get('/api/admin/config', (req, res) => {
@@ -180,6 +206,7 @@ app.post('/api/admin/config', async (req, res) => {
     res.json({ success: true, reprocessing: aspectChanged });
   } catch (err) {
     log('error', 'Config update failed', { error: err.message });
+    errorsTotal.inc({ source: 'api' });
     res
       .status(500)
       .json({ error: 'Failed to update configuration', details: err.message });
@@ -222,6 +249,7 @@ app.use('/api/admin/upload', (err, req, res, next) => {
   }
   if (err) {
     log('error', 'Upload error', { error: err.message });
+    errorsTotal.inc({ source: 'api' });
     return res.status(400).json({ error: err.message });
   }
   next();
@@ -486,6 +514,7 @@ app.get('/api/admin/images', async (req, res) => {
     });
   } catch (err) {
     log('error', 'Failed to list images', { error: err.message });
+    errorsTotal.inc({ source: 'api' });
     res.status(500).json({ error: 'Failed to list images' });
   }
 });
@@ -828,6 +857,7 @@ app.get('/images/:filename', (req, res) => {
 
   res.sendFile(imagePath, (err) => {
     if (err) {
+      errorsTotal.inc({ source: 'image' });
       log('error', 'Failed to serve image', {
         filename: safeName,
         error: err.message,
@@ -835,6 +865,7 @@ app.get('/images/:filename', (req, res) => {
       res.status(404).send('Not found');
     } else {
       log('info', 'Image served', { filename: safeName });
+      imagesServedTotal.inc();
     }
   });
 });
@@ -907,6 +938,7 @@ configWatcher.on('change', () => {
     updateSettings(newConfig);
   } catch (err) {
     log('error', 'Failed to reload config', { error: err.message });
+    errorsTotal.inc({ source: 'watcher' });
   }
 });
 
