@@ -4,5 +4,10 @@ logs/
 .reprocess-trigger
 .reprocess-progress.json
 *.pem
+!certs/*.pem
 .env
 .worktrees/
+
+# Test images (keep .gitkeep files)
+test-images/*
+!test-images/*/.gitkeep
