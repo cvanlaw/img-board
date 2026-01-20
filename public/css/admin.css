@@ -524,6 +524,48 @@ dialog p {
   background: rgba(0, 0, 0, 0.8);
 }
 
+/* Rotation buttons */
+.rotate-btn {
+  font-size: 1rem;
+  min-width: 28px;
+  min-height: 28px;
+  padding: 8px; /* (44 - 28) / 2 = 8px to achieve 44px touch target */
+}
+
+.rotate-btn:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 1px;
+}
+
+/* Rotating state */
+.gallery-item.rotating {
+  pointer-events: none;
+}
+
+.gallery-item.rotating img {
+  opacity: 0.5;
+}
+
+.gallery-item.rotating::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 24px;
+  height: 24px;
+  margin: -12px 0 0 -12px;
+  border: 3px solid rgba(255, 255, 255, 0.3);
+  border-top-color: white;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 .pagination {
   display: flex;
   justify-content: center;

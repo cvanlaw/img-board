@@ -6,7 +6,13 @@ const fs = require('fs').promises;
 const fsSync = require('fs');
 const chokidar = require('chokidar');
 const multer = require('multer');
-const { shuffleArray, deepMerge, ipMatches } = require('./lib/utils');
+const sharp = require('sharp');
+const {
+  shuffleArray,
+  deepMerge,
+  ipMatches,
+  getRotationAngle,
+} = require('./lib/utils');
 
 let config = require('./config.json');
 const app = express();
@@ -402,6 +408,45 @@ async function performPermanentDelete(filename) {
   }
 }
 
+// Rotate an image 90 degrees clockwise (cw) or counter-clockwise (ccw)
+async function rotateImage(filename, direction) {
+  const filePath = path.join(config.imagePath, filename);
+  const tempPath = `${filePath}.rotating.webp`;
+
+  // Validate direction
+  const angle = getRotationAngle(direction);
+  if (angle === null) {
+    throw new Error('direction must be "cw" or "ccw"');
+  }
+
+  // Verify file exists
+  await fs.access(filePath);
+
+  try {
+    // Read, rotate, and write to temp file
+    await sharp(filePath).rotate(angle).toFile(tempPath);
+
+    // Atomic replace: rename temp over original
+    await fs.rename(tempPath, filePath);
+
+    return { success: true, filename };
+  } catch (err) {
+    // Clean up temp file on error
+    try {
+      await fs.unlink(tempPath);
+    } catch {
+      // Ignore cleanup errors
+    }
+    throw err;
+  }
+}
+
+// Helper for bulk rotation
+async function performRotate(filename, direction) {
+  await rotateImage(filename, direction);
+  broadcast('update', { filename, timestamp: Date.now() });
+}
+
 // GET /api/admin/images - List all images with metadata
 app.get('/api/admin/images', async (req, res) => {
   try {
@@ -670,6 +715,37 @@ app.delete('/api/admin/images/:filename/permanent', async (req, res) => {
   }
 });
 
+// POST /api/admin/images/:filename/rotate - Rotate image 90 degrees
+app.post('/api/admin/images/:filename/rotate', async (req, res) => {
+  try {
+    const filename = path.basename(req.params.filename);
+    const { direction } = req.body;
+
+    if (direction !== 'cw' && direction !== 'ccw') {
+      return res.status(400).json({ error: 'direction must be "cw" or "ccw"' });
+    }
+
+    // Verify file exists
+    const filePath = path.join(config.imagePath, filename);
+    try {
+      await fs.access(filePath);
+    } catch {
+      return res.status(404).json({ error: 'Image not found' });
+    }
+
+    await rotateImage(filename, direction);
+
+    // Broadcast SSE update event
+    broadcast('update', { filename, timestamp: Date.now() });
+
+    log('info', 'Image rotated', { filename, direction });
+    res.json({ success: true, filename });
+  } catch (err) {
+    log('error', 'Failed to rotate image', { error: err.message });
+    res.status(500).json({ error: 'Failed to rotate image' });
+  }
+});
+
 // POST /api/admin/images/bulk - Bulk operations on multiple images
 app.post('/api/admin/images/bulk', async (req, res) => {
   try {
@@ -687,6 +763,8 @@ app.post('/api/admin/images/bulk', async (req, res) => {
       'delete',
       'restore',
       'permanent-delete',
+      'rotate-cw',
+      'rotate-ccw',
     ];
     if (!validActions.includes(action)) {
       return res.status(400).json({
@@ -715,6 +793,12 @@ app.post('/api/admin/images/bulk', async (req, res) => {
             break;
           case 'permanent-delete':
             await performPermanentDelete(safeFilename);
+            break;
+          case 'rotate-cw':
+            await performRotate(safeFilename, 'cw');
+            break;
+          case 'rotate-ccw':
+            await performRotate(safeFilename, 'ccw');
             break;
         }
         results.push({ filename: safeFilename, success: true });

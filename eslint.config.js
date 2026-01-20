@@ -29,7 +29,7 @@ module.exports = [
         'error',
         {
           varsIgnorePattern:
-            '^(saveSlideshow|savePreprocessing|manualReprocess|uploadFiles|goToPage|toggleExclusion|deleteImage|restoreImage|permanentDeleteImage|toggleSelection|bulkAction)$',
+            '^(saveSlideshow|savePreprocessing|manualReprocess|uploadFiles|goToPage|toggleExclusion|deleteImage|restoreImage|permanentDeleteImage|toggleSelection|bulkAction|rotateImage)$',
         },
       ],
     },
