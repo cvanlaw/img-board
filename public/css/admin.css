@@ -529,7 +529,7 @@ dialog p {
   font-size: 1rem;
   min-width: 28px;
   min-height: 28px;
-  padding: 0.25rem;
+  padding: 8px; /* (44 - 28) / 2 = 8px to achieve 44px touch target */
 }
 
 .rotate-btn:focus-visible {

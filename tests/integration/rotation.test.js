@@ -1,5 +1,8 @@
+const EventSource = require('eventsource');
+const sharp = require('sharp');
 const {
   BASE_URL,
+  TEST_DATA_DIR,
   setupTestDirectories,
   cleanupTestDirectories,
   startContainer,
@@ -7,6 +10,7 @@ const {
   waitForHealth,
   addProcessedImage,
 } = require('./helpers');
+const path = require('path');
 
 describe('Image Rotation', () => {
   beforeAll(async () => {
@@ -91,6 +95,72 @@ describe('Image Rotation', () => {
       );
 
       expect(res.status).toBe(404);
+    });
+
+    test('rotates image and changes dimensions', async () => {
+      const imagePath = await addProcessedImage('rotate-verify.webp');
+      await new Promise((r) => setTimeout(r, 2000));
+
+      // Get original dimensions
+      const before = await sharp(imagePath).metadata();
+      const originalWidth = before.width;
+      const originalHeight = before.height;
+
+      // Rotate
+      const res = await fetch(
+        `${BASE_URL}/api/admin/images/rotate-verify.webp/rotate`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ direction: 'cw' }),
+        }
+      );
+
+      expect(res.status).toBe(200);
+
+      // Verify dimensions are swapped (90 degree rotation swaps width/height)
+      const after = await sharp(imagePath).metadata();
+      expect(after.width).toBe(originalHeight);
+      expect(after.height).toBe(originalWidth);
+    });
+  });
+
+  describe('SSE update event on rotation', () => {
+    test('broadcasts update event after rotation', async () => {
+      await addProcessedImage('sse-rotation-test.webp');
+      await new Promise((r) => setTimeout(r, 2000));
+
+      // Connect to SSE
+      const events = [];
+      const es = new EventSource(`${BASE_URL}/api/events`);
+
+      await new Promise((resolve) => {
+        es.addEventListener('update', (e) => {
+          events.push(JSON.parse(e.data));
+          resolve();
+        });
+
+        // Wait for connection, then trigger rotation
+        es.addEventListener('connected', async () => {
+          await fetch(
+            `${BASE_URL}/api/admin/images/sse-rotation-test.webp/rotate`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ direction: 'cw' }),
+            }
+          );
+        });
+
+        // Timeout fallback
+        setTimeout(resolve, 5000);
+      });
+
+      es.close();
+
+      expect(events.length).toBeGreaterThan(0);
+      expect(events[0].filename).toBe('sse-rotation-test.webp');
+      expect(events[0].timestamp).toBeDefined();
     });
   });
 

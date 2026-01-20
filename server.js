@@ -7,7 +7,12 @@ const fsSync = require('fs');
 const chokidar = require('chokidar');
 const multer = require('multer');
 const sharp = require('sharp');
-const { shuffleArray, deepMerge, ipMatches } = require('./lib/utils');
+const {
+  shuffleArray,
+  deepMerge,
+  ipMatches,
+  getRotationAngle,
+} = require('./lib/utils');
 
 let config = require('./config.json');
 const app = express();
@@ -409,7 +414,7 @@ async function rotateImage(filename, direction) {
   const tempPath = `${filePath}.rotating.webp`;
 
   // Validate direction
-  const angle = direction === 'cw' ? 90 : direction === 'ccw' ? -90 : null;
+  const angle = getRotationAngle(direction);
   if (angle === null) {
     throw new Error('direction must be "cw" or "ccw"');
   }

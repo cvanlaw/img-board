@@ -1,9 +1,6 @@
-describe('Rotation angle calculation', () => {
-  // Helper function that mirrors the logic in server.js rotateImage
-  function getRotationAngle(direction) {
-    return direction === 'cw' ? 90 : direction === 'ccw' ? -90 : null;
-  }
+const { getRotationAngle } = require('../../lib/utils');
 
+describe('Rotation angle calculation', () => {
   test('cw direction returns 90 degrees', () => {
     expect(getRotationAngle('cw')).toBe(90);
   });
