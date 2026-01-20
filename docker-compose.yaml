@@ -8,6 +8,7 @@ services:
     ports:
       - '3000:3000'
     expose:
+      - '9091'
       - '9092'
     volumes:
       - ./config.json:/app/config.json

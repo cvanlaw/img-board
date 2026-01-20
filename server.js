@@ -1041,6 +1041,27 @@ function updateSettings(newConfig) {
   }
 }
 
+// Dedicated HTTP metrics server for Prometheus scraping
+// (Main server may run HTTPS, but Prometheus needs HTTP)
+const metricsServer = http.createServer(async (req, res) => {
+  if (req.url === '/metrics' && req.method === 'GET') {
+    try {
+      res.setHeader('Content-Type', register.contentType);
+      res.end(await register.metrics());
+    } catch (err) {
+      res.statusCode = 500;
+      res.end(err.message);
+    }
+  } else {
+    res.statusCode = 404;
+    res.end('Not found');
+  }
+});
+
+metricsServer.listen(9091, () => {
+  log('info', 'Metrics server listening on port 9091');
+});
+
 function startServer() {
   let server;
 
