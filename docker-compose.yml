@@ -74,7 +74,7 @@ services:
       - GF_AUTH_ANONYMOUS_ORG_ROLE=${GRAFANA_ANONYMOUS_ROLE:-Viewer}
       - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/var/lib/grafana/dashboards/img-board.json
     ports:
-      - '3001:3000'
+      - '3111:3000'
     restart: unless-stopped
     depends_on:
       - prometheus
