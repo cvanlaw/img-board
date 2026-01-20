@@ -4,8 +4,11 @@ logs/
 .reprocess-trigger
 .reprocess-progress.json
 *.pem
-!certs/*.pem
 .env
+
+# Certs directory (generated on-demand via make ensure-certs)
+certs/*
+!certs/.gitkeep
 .worktrees/
 
 # Test images (keep .gitkeep files)

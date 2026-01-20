@@ -1,4 +1,4 @@
-.PHONY: help install dev dev-preprocess start up down logs restart ps build health deploy setup certs clean
+.PHONY: help install dev dev-preprocess start up down logs restart ps build health deploy setup certs ensure-certs clean
 
 # Default to dev; override with IMGBOARD_ENV=prod
 IMGBOARD_ENV ?= dev
@@ -39,18 +39,19 @@ help:
 	@echo "  make certs          Update TLS certificates"
 	@echo ""
 	@echo "Utility:"
+	@echo "  make ensure-certs   Generate self-signed certs if missing"
 	@echo "  make clean          Remove stopped containers and dangling images"
 
 install:
 	npm install
 
-dev:
+dev: ensure-certs
 	npm run dev
 
 dev-preprocess:
 	npm run dev:preprocess
 
-start:
+start: ensure-certs
 	node start.js
 
 up:
@@ -82,6 +83,20 @@ setup:
 
 certs:
 	./deploy/update-certs.sh
+
+ensure-certs:
+	@if [ ! -f certs/cert.pem ]; then \
+		echo "Generating self-signed certificates..."; \
+		mkdir -p certs; \
+		openssl req -x509 -newkey rsa:4096 -keyout certs/key.pem -out certs/cert.pem \
+			-sha256 -days 365 -nodes \
+			-subj "/CN=localhost" \
+			-addext "subjectAltName=DNS:localhost,IP:127.0.0.1"; \
+		cp certs/cert.pem certs/chain.pem; \
+		echo "Certificates generated in certs/"; \
+	else \
+		echo "Certificates already exist"; \
+	fi
 
 clean:
 	docker container prune -f

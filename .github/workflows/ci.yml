@@ -62,3 +62,5 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker compose build
+        env:
+          BUILD_CONTEXT: .
