@@ -20,3 +20,13 @@ services:
           '--spider',
           'http://localhost:3000/health',
         ]
+
+  prometheus:
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus:ro
+
+  grafana:
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+      - ./monitoring/grafana/alerting:/etc/grafana/provisioning/alerting:ro
