@@ -135,7 +135,7 @@ async function init() {
       try {
         res.setHeader('Content-Type', register.contentType);
         res.end(await register.metrics());
-      } catch (err) {
+      } catch {
         res.statusCode = 500;
         res.end('Error generating metrics');
       }
