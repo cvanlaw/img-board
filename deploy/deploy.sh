@@ -40,8 +40,8 @@ if [[ ! -f "$APP_DIR/config.json" ]]; then
     echo "IMPORTANT: Edit /opt/imgboard/config.json before starting"
 fi
 
-# Copy docker-compose.yml
-cp "$SCRIPT_DIR/docker-compose.yml" "$APP_DIR/docker-compose.yml"
+# Copy docker-compose.yaml from source
+cp "$APP_DIR/source/docker-compose.yaml" "$APP_DIR/docker-compose.yaml"
 
 # Build and deploy
 echo "Building and starting container..."
