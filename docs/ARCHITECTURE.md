@@ -89,7 +89,7 @@ image-slideshow/
 ├── .reprocess-trigger     # Temp file: signals reprocessing needed
 ├── .reprocess-progress.json # Temp file: tracks reprocessing progress
 ├── Dockerfile             # Docker container build
-├── docker-compose.yml     # Docker Compose deployment config
+├── docker-compose.yaml    # Docker Compose production config
 ├── README.md              # Setup and deployment instructions
 ├── nginx.conf             # nginx HTTPS reverse proxy config (optional)
 ├── public/
@@ -1167,7 +1167,7 @@ process.on('SIGTERM', () => {
 });
 ```
 
-**docker-compose.yml**:
+**docker-compose.yaml**:
 
 ```yaml
 version: '3.8'
@@ -1334,7 +1334,7 @@ server {
 13. Configure TLS cert paths in `config.json` or nginx
 14. Create Docker deployment files:
     - `Dockerfile` - Container image definition
-    - `docker-compose.yml` - Service configuration with volume mounts
+    - `docker-compose.yaml` - Service configuration with volume mounts
     - `start.js` - Process wrapper for both services
     - `.dockerignore` - Build exclusions
 15. Deploy to target device:

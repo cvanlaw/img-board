@@ -75,7 +75,7 @@ Edit `grafana/provisioning/alerting/alerting.yml` to configure email, Slack, or 
 
 ### Data Retention
 
-Default: 15 days. Change via Prometheus `--storage.tsdb.retention.time` flag in docker-compose.yml.
+Default: 15 days. Change via Prometheus `--storage.tsdb.retention.time` flag in docker-compose.yaml.
 
 ### Adding Panels
 

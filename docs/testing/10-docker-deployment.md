@@ -6,7 +6,7 @@ Tests containerized deployment and volume management.
 
 - Docker and Docker Compose installed
 - NAS directories accessible on host
-- docker-compose.yml configured
+- docker-compose.yaml configured
 - Valid config.json
 
 ---

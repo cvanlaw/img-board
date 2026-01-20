@@ -40,7 +40,7 @@ deploy/
 ├── deploy.sh                # Build and deploy application
 ├── update-certs.sh          # Pull certificates from S3
 ├── config.example.json      # Template configuration
-├── docker-compose.yml       # Container configuration
+├── docker-compose.yaml      # Container configuration (copied from source repo)
 ├── .env.example             # Environment variables template
 └── README.md                # Deployment instructions
 ```
@@ -55,7 +55,7 @@ On the host after deployment:
 │   ├── key.pem
 │   └── chain.pem
 ├── config.json              # Application configuration
-└── docker-compose.yml       # Active compose file
+└── docker-compose.yaml      # Active compose file
 ```
 
 ## Scripts
@@ -158,8 +158,8 @@ if [[ ! -f "$APP_DIR/config.json" ]]; then
     echo "IMPORTANT: Edit /opt/imgboard/config.json before starting"
 fi
 
-# Copy docker-compose.yml
-cp "$SCRIPT_DIR/docker-compose.yml" "$APP_DIR/docker-compose.yml"
+# Copy docker-compose.yaml from source repo
+cp "$APP_DIR/source/docker-compose.yaml" "$APP_DIR/docker-compose.yaml"
 
 # Build and deploy
 echo "Building and starting container..."
@@ -237,7 +237,7 @@ BRANCH=main
 NAS_MOUNT_BASE=/mnt/nas/photos
 ```
 
-### docker-compose.yml
+### docker-compose.yaml
 
 ```yaml
 services:
@@ -333,7 +333,7 @@ nano .env  # Set S3_CERT_BUCKET and CERT_HOSTNAME
 
 # 6. Edit application config if needed
 nano /opt/imgboard/config.json
-docker compose -f /opt/imgboard/docker-compose.yml restart
+docker compose -f /opt/imgboard/docker-compose.yaml restart
 ```
 
 ### Update Application
@@ -354,7 +354,7 @@ Or re-run deploy script:
 
 ```bash
 ./update-certs.sh
-docker compose -f /opt/imgboard/docker-compose.yml restart
+docker compose -f /opt/imgboard/docker-compose.yaml restart
 ```
 
 ### Rollback
@@ -368,7 +368,7 @@ docker compose up -d --build
 ### View Logs
 
 ```bash
-docker compose -f /opt/imgboard/docker-compose.yml logs -f
+docker compose -f /opt/imgboard/docker-compose.yaml logs -f
 ```
 
 ## Certificate Management
@@ -384,7 +384,7 @@ docker compose -f /opt/imgboard/docker-compose.yml logs -f
 
 ```bash
 # Check for new certs weekly and restart if changed
-0 4 * * 0 /opt/imgboard/deploy/update-certs.sh && docker compose -f /opt/imgboard/docker-compose.yml restart
+0 4 * * 0 /opt/imgboard/deploy/update-certs.sh && docker compose -f /opt/imgboard/docker-compose.yaml restart
 ```
 
 ## Security Considerations
@@ -400,7 +400,7 @@ docker compose -f /opt/imgboard/docker-compose.yml logs -f
 **Container won't start:**
 
 ```bash
-docker compose -f /opt/imgboard/docker-compose.yml logs
+docker compose -f /opt/imgboard/docker-compose.yaml logs
 ```
 
 **Certificate errors:**
@@ -431,7 +431,7 @@ deploy/
 ├── deploy.sh             # Deployment script
 ├── update-certs.sh       # Certificate update script
 ├── .env.example          # Environment template
-├── docker-compose.yml    # Container configuration
+├── docker-compose.yaml   # Container configuration (in source repo root)
 ├── config.example.json   # Application config template
 └── README.md             # Quick reference
 ```

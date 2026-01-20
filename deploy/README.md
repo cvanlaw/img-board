@@ -71,7 +71,7 @@ Required variables:
 
 ```bash
 nano /opt/imgboard/config.json
-docker compose -f /opt/imgboard/docker-compose.yml restart
+docker compose -f /opt/imgboard/docker-compose.yaml restart
 ```
 
 ## Maintenance
@@ -96,13 +96,13 @@ docker compose up -d --build
 
 ```bash
 ./update-certs.sh
-docker compose -f /opt/imgboard/docker-compose.yml restart
+docker compose -f /opt/imgboard/docker-compose.yaml restart
 ```
 
 ### View Logs
 
 ```bash
-docker compose -f /opt/imgboard/docker-compose.yml logs -f
+docker compose -f /opt/imgboard/docker-compose.yaml logs -f
 ```
 
 ### Rollback
@@ -119,7 +119,7 @@ Add to crontab (`crontab -e`):
 
 ```bash
 # Check for new certs weekly and restart if changed
-0 4 * * 0 /opt/imgboard/deploy/update-certs.sh && docker compose -f /opt/imgboard/docker-compose.yml restart
+0 4 * * 0 /opt/imgboard/deploy/update-certs.sh && docker compose -f /opt/imgboard/docker-compose.yaml restart
 ```
 
 ## Troubleshooting
@@ -127,7 +127,7 @@ Add to crontab (`crontab -e`):
 ### Container won't start
 
 ```bash
-docker compose -f /opt/imgboard/docker-compose.yml logs
+docker compose -f /opt/imgboard/docker-compose.yaml logs
 ```
 
 ### Certificate errors
@@ -191,5 +191,5 @@ curl -vk https://localhost:3000/health
 │   ├── key.pem
 │   └── chain.pem
 ├── config.json       # Application configuration
-└── docker-compose.yml
+└── docker-compose.yaml
 ```
