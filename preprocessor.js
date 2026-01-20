@@ -2,6 +2,15 @@ const chokidar = require('chokidar');
 const sharp = require('sharp');
 const path = require('path');
 const fs = require('fs').promises;
+const http = require('http');
+const {
+  register,
+  imagesProcessedTotal,
+  imagesFailedTotal,
+  processingDuration,
+  imageSizeBytes,
+  compressionRatio,
+} = require('./lib/preprocessor-metrics');
 
 let config = require('./config.json');
 
@@ -36,8 +45,15 @@ async function processImage(inputPath) {
     outputFilename
   );
 
+  const endTimer = processingDuration.startTimer();
+  let inputSize = 0;
+
   try {
     log('info', 'Processing image', { input: inputPath, output: outputPath });
+
+    // Get input file size for compression ratio
+    const inputStats = await fs.stat(inputPath);
+    inputSize = inputStats.size;
 
     await sharp(inputPath)
       .webp({ quality: config.preprocessing.quality })
@@ -51,13 +67,30 @@ async function processImage(inputPath) {
       )
       .toFile(outputPath);
 
+    // Get output file size
+    const outputStats = await fs.stat(outputPath);
+    const outputSize = outputStats.size;
+
+    // Record metrics
+    endTimer();
+    imagesProcessedTotal.inc();
+    imageSizeBytes.observe(outputSize);
+    if (inputSize > 0) {
+      compressionRatio.observe(inputSize / outputSize);
+    }
+
     log('info', 'Image processed successfully', {
       input: inputPath,
       output: outputPath,
+      inputSize,
+      outputSize,
+      ratio: inputSize > 0 ? (inputSize / outputSize).toFixed(2) : 'N/A',
     });
 
     await handleOriginalFile(inputPath);
   } catch (err) {
+    endTimer();
+    imagesFailedTotal.inc({ reason: err.code || 'unknown' });
     log('error', 'Failed to process image', {
       input: inputPath,
       error: err.message,
@@ -96,6 +129,33 @@ function isValidImageExtension(filePath) {
 }
 
 async function init() {
+  // Start metrics server
+  const metricsServer = http.createServer(async (req, res) => {
+    if (req.url === '/metrics' && req.method === 'GET') {
+      try {
+        res.setHeader('Content-Type', register.contentType);
+        res.end(await register.metrics());
+      } catch (err) {
+        res.statusCode = 500;
+        res.end('Error generating metrics');
+      }
+    } else {
+      res.statusCode = 404;
+      res.end('Not found');
+    }
+  });
+
+  metricsServer.on('error', (err) => {
+    log('error', 'Metrics server error', { error: err.message });
+    if (err.code === 'EADDRINUSE') {
+      log('error', 'Metrics port 9092 already in use');
+    }
+  });
+
+  metricsServer.listen(9092, () => {
+    log('info', 'Preprocessor metrics server started', { port: 9092 });
+  });
+
   if (!config.preprocessing.enabled) {
     log('warn', 'Preprocessing disabled in config');
     process.exit(0);
