@@ -31,12 +31,12 @@ Non-goals: Usage analytics, engagement patterns, view popularity tracking.
 
 ### Port Assignments
 
-| Port | Purpose |
-|------|---------|
+| Port | Purpose                                                         |
+| ---- | --------------------------------------------------------------- |
 | 3000 | Main app (slideshow, admin, API) + server metrics at `/metrics` |
-| 9092 | Preprocessor metrics only (internal, not exposed to host) |
-| 9090 | Prometheus UI (exposed to host for debugging) |
-| 3001 | Grafana UI (exposed to host) |
+| 9092 | Preprocessor metrics only (internal, not exposed to host)       |
+| 9090 | Prometheus UI (exposed to host for debugging)                   |
+| 3001 | Grafana UI (exposed to host)                                    |
 
 ### Scrape Configuration
 
@@ -48,31 +48,32 @@ Non-goals: Usage analytics, engagement patterns, view popularity tracking.
 
 ### Server Process Metrics (`server.js`)
 
-| Metric | Type | Description |
-|--------|------|-------------|
-| `imgboard_server_uptime_seconds` | Gauge | Process uptime |
-| `imgboard_http_requests_total` | Counter | Total requests by method, route, status |
-| `imgboard_http_request_duration_seconds` | Histogram | Request latency (buckets: 10ms to 10s) |
-| `imgboard_sse_clients_connected` | Gauge | Current SSE client count |
-| `imgboard_sse_broadcasts_total` | Counter | SSE events sent by type (add/remove/config) |
-| `imgboard_images_served_total` | Counter | Image file serves |
-| `imgboard_errors_total` | Counter | Errors by source (api, sse, watcher) |
+| Metric                                   | Type      | Description                                 |
+| ---------------------------------------- | --------- | ------------------------------------------- |
+| `imgboard_server_uptime_seconds`         | Gauge     | Process uptime                              |
+| `imgboard_http_requests_total`           | Counter   | Total requests by method, route, status     |
+| `imgboard_http_request_duration_seconds` | Histogram | Request latency (buckets: 10ms to 10s)      |
+| `imgboard_sse_clients_connected`         | Gauge     | Current SSE client count                    |
+| `imgboard_sse_broadcasts_total`          | Counter   | SSE events sent by type (add/remove/config) |
+| `imgboard_images_served_total`           | Counter   | Image file serves                           |
+| `imgboard_errors_total`                  | Counter   | Errors by source (api, sse, watcher)        |
 
 ### Preprocessor Metrics (`preprocessor.js`)
 
-| Metric | Type | Description |
-|--------|------|-------------|
-| `imgboard_preprocessor_uptime_seconds` | Gauge | Process uptime |
-| `imgboard_images_processed_total` | Counter | Images successfully processed |
-| `imgboard_images_failed_total` | Counter | Processing failures by reason |
+| Metric                                 | Type      | Description                            |
+| -------------------------------------- | --------- | -------------------------------------- |
+| `imgboard_preprocessor_uptime_seconds` | Gauge     | Process uptime                         |
+| `imgboard_images_processed_total`      | Counter   | Images successfully processed          |
+| `imgboard_images_failed_total`         | Counter   | Processing failures by reason          |
 | `imgboard_processing_duration_seconds` | Histogram | Time per image (buckets: 100ms to 60s) |
-| `imgboard_processing_queue_depth` | Gauge | Pending images awaiting processing |
-| `imgboard_image_size_bytes` | Histogram | Output file sizes |
-| `imgboard_compression_ratio` | Histogram | Original size / processed size |
+| `imgboard_processing_queue_depth`      | Gauge     | Pending images awaiting processing     |
+| `imgboard_image_size_bytes`            | Histogram | Output file sizes                      |
+| `imgboard_compression_ratio`           | Histogram | Original size / processed size         |
 
 ### Node.js Default Metrics (both processes)
 
 Enabled via `prom-client`'s `collectDefaultMetrics()`:
+
 - `process_cpu_seconds_total`
 - `process_resident_memory_bytes`
 - `nodejs_heap_size_*`
@@ -97,14 +98,18 @@ const httpRequestDuration = new client.Histogram({
   name: 'imgboard_http_request_duration_seconds',
   help: 'HTTP request duration',
   labelNames: ['method', 'route', 'status'],
-  buckets: [0.01, 0.05, 0.1, 0.5, 1, 5, 10]
+  buckets: [0.01, 0.05, 0.1, 0.5, 1, 5, 10],
 });
 
 // Express middleware for automatic request timing
 app.use((req, res, next) => {
   const end = httpRequestDuration.startTimer();
   res.on('finish', () => {
-    end({ method: req.method, route: req.route?.path || req.path, status: res.statusCode });
+    end({
+      method: req.method,
+      route: req.route?.path || req.path,
+      status: res.statusCode,
+    });
   });
   next();
 });
@@ -126,15 +131,17 @@ const client = require('prom-client');
 
 client.collectDefaultMetrics({ prefix: 'imgboard_preprocessor_' });
 
-http.createServer(async (req, res) => {
-  if (req.url === '/metrics') {
-    res.setHeader('Content-Type', client.register.contentType);
-    res.end(await client.register.metrics());
-  } else {
-    res.statusCode = 404;
-    res.end();
-  }
-}).listen(9092);
+http
+  .createServer(async (req, res) => {
+    if (req.url === '/metrics') {
+      res.setHeader('Content-Type', client.register.contentType);
+      res.end(await client.register.metrics());
+    } else {
+      res.statusCode = 404;
+      res.end();
+    }
+  })
+  .listen(9092);
 ```
 
 Processing instrumented by wrapping the Sharp pipeline with timer start/end calls.
@@ -144,29 +151,34 @@ Processing instrumented by wrapping the Sharp pipeline with timer start/end call
 **Dashboard: "img-board Overview"**
 
 ### Row 1: Health at a Glance (4 stat panels)
+
 - Server uptime
 - Preprocessor uptime
 - Current SSE clients
 - Error rate (last 5 min)
 
 ### Row 2: Image Processing (4 panels)
+
 - Processing throughput (images/minute graph)
 - Processing duration (p50, p95, p99 time series)
 - Queue depth (gauge with thresholds: green < 10, yellow < 50, red >= 50)
 - Compression ratio distribution (histogram)
 
 ### Row 3: Server Performance (3 panels)
+
 - Request rate by route (stacked graph)
 - Request latency by route (heatmap)
 - SSE broadcasts by type (stacked graph)
 
 ### Row 4: Resource Usage (4 panels)
+
 - Memory usage (server + preprocessor overlaid)
 - CPU usage (both processes)
 - Heap used vs heap total (both processes)
 - Event loop lag (both processes)
 
 ### Row 5: Errors (2 panels)
+
 - Error count by source (table, last 24h)
 - Error rate over time (graph with annotations)
 
@@ -176,21 +188,21 @@ Dashboard JSON auto-loaded via Grafana provisioning.
 
 ### Critical Alerts (immediate attention)
 
-| Alert | Condition | For | Description |
-|-------|-----------|-----|-------------|
-| `PreprocessorDown` | `up{job="preprocessor"} == 0` | 1m | Preprocessor not responding to scrapes |
-| `ServerDown` | `up{job="server"} == 0` | 1m | Server not responding to scrapes |
-| `HighErrorRate` | `rate(imgboard_errors_total[5m]) > 0.1` | 2m | More than 6 errors/minute sustained |
-| `ProcessingStalled` | `rate(imgboard_images_processed_total[10m]) == 0` AND `imgboard_processing_queue_depth > 0` | 5m | Queue has items but nothing processing |
+| Alert               | Condition                                                                                   | For | Description                            |
+| ------------------- | ------------------------------------------------------------------------------------------- | --- | -------------------------------------- |
+| `PreprocessorDown`  | `up{job="preprocessor"} == 0`                                                               | 1m  | Preprocessor not responding to scrapes |
+| `ServerDown`        | `up{job="server"} == 0`                                                                     | 1m  | Server not responding to scrapes       |
+| `HighErrorRate`     | `rate(imgboard_errors_total[5m]) > 0.1`                                                     | 2m  | More than 6 errors/minute sustained    |
+| `ProcessingStalled` | `rate(imgboard_images_processed_total[10m]) == 0` AND `imgboard_processing_queue_depth > 0` | 5m  | Queue has items but nothing processing |
 
 ### Warning Alerts (investigate soon)
 
-| Alert | Condition | For | Description |
-|-------|-----------|-----|-------------|
-| `HighMemoryUsage` | `process_resident_memory_bytes > 500MB` | 5m | Memory above 500MB sustained |
-| `SlowProcessing` | `histogram_quantile(0.95, imgboard_processing_duration_seconds) > 30` | 5m | 95th percentile processing > 30s |
-| `LargeQueueDepth` | `imgboard_processing_queue_depth > 50` | 5m | Backlog building up |
-| `NoSSEClients` | `imgboard_sse_clients_connected == 0` | 10m | No slideshows connected (may be expected) |
+| Alert             | Condition                                                             | For | Description                               |
+| ----------------- | --------------------------------------------------------------------- | --- | ----------------------------------------- |
+| `HighMemoryUsage` | `process_resident_memory_bytes > 500MB`                               | 5m  | Memory above 500MB sustained              |
+| `SlowProcessing`  | `histogram_quantile(0.95, imgboard_processing_duration_seconds) > 30` | 5m  | 95th percentile processing > 30s          |
+| `LargeQueueDepth` | `imgboard_processing_queue_depth > 50`                                | 5m  | Backlog building up                       |
+| `NoSSEClients`    | `imgboard_sse_clients_connected == 0`                                 | 10m | No slideshows connected (may be expected) |
 
 ### Alert Delivery
 
@@ -223,7 +235,7 @@ services:
   img-board:
     # ... existing config ...
     expose:
-      - "9092"  # Preprocessor metrics (internal only)
+      - '9092' # Preprocessor metrics (internal only)
 
   prometheus:
     image: prom/prometheus:v2.50.1
@@ -234,7 +246,7 @@ services:
       - '--config.file=/etc/prometheus/prometheus.yml'
       - '--storage.tsdb.retention.time=15d'
     ports:
-      - "9090:9090"
+      - '9090:9090'
 
   grafana:
     image: grafana/grafana:10.3.3
@@ -243,11 +255,11 @@ services:
       - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards
       - grafana_data:/var/lib/grafana
     environment:
-      - GF_SECURITY_ADMIN_PASSWORD=admin  # Change in production
+      - GF_SECURITY_ADMIN_PASSWORD=admin # Change in production
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
     ports:
-      - "3001:3000"
+      - '3001:3000'
 
 volumes:
   prometheus_data:

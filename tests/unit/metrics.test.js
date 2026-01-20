@@ -18,12 +18,16 @@ describe('metrics module', () => {
 
   it('exports httpRequestDuration histogram', () => {
     expect(metrics.httpRequestDuration).toBeDefined();
-    expect(metrics.httpRequestDuration.name).toBe('imgboard_http_request_duration_seconds');
+    expect(metrics.httpRequestDuration.name).toBe(
+      'imgboard_http_request_duration_seconds'
+    );
   });
 
   it('exports sseClientsConnected gauge', () => {
     expect(metrics.sseClientsConnected).toBeDefined();
-    expect(metrics.sseClientsConnected.name).toBe('imgboard_sse_clients_connected');
+    expect(metrics.sseClientsConnected.name).toBe(
+      'imgboard_sse_clients_connected'
+    );
   });
 
   it('exports errorsTotal counter', () => {
@@ -45,7 +49,9 @@ describe('metrics module', () => {
 
   it('exports sseBroadcastsTotal counter', () => {
     expect(metrics.sseBroadcastsTotal).toBeDefined();
-    expect(metrics.sseBroadcastsTotal.name).toBe('imgboard_sse_broadcasts_total');
+    expect(metrics.sseBroadcastsTotal.name).toBe(
+      'imgboard_sse_broadcasts_total'
+    );
   });
 
   it('exports imagesServedTotal counter', () => {

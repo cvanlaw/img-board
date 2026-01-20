@@ -7,7 +7,7 @@ services:
     ports:
       - '3000:3000'
     expose:
-      - '9092'  # Preprocessor metrics (internal only)
+      - '9092' # Preprocessor metrics (internal only)
     volumes:
       # NAS mounts (adjust paths to your setup)
       - /mnt/nas/photos/raw:/mnt/photos/raw:ro

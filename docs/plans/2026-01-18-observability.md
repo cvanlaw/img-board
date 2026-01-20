@@ -13,6 +13,7 @@
 ## Task 1: Add prom-client Dependency
 
 **Files:**
+
 - Modify: `package.json:6-11`
 
 **Step 1: Install prom-client**
@@ -39,6 +40,7 @@ git commit -m "chore: add prom-client for Prometheus metrics"
 ## Task 2: Create Metrics Module
 
 **Files:**
+
 - Create: `lib/metrics.js`
 - Test: `tests/unit/metrics.test.js`
 
@@ -66,12 +68,16 @@ describe('metrics module', () => {
 
   it('exports httpRequestDuration histogram', () => {
     expect(metrics.httpRequestDuration).toBeDefined();
-    expect(metrics.httpRequestDuration.name).toBe('imgboard_http_request_duration_seconds');
+    expect(metrics.httpRequestDuration.name).toBe(
+      'imgboard_http_request_duration_seconds'
+    );
   });
 
   it('exports sseClientsConnected gauge', () => {
     expect(metrics.sseClientsConnected).toBeDefined();
-    expect(metrics.sseClientsConnected.name).toBe('imgboard_sse_clients_connected');
+    expect(metrics.sseClientsConnected.name).toBe(
+      'imgboard_sse_clients_connected'
+    );
   });
 
   it('exports errorsTotal counter', () => {
@@ -173,6 +179,7 @@ git commit -m "feat: add metrics module with Prometheus counters and gauges"
 ## Task 3: Create Preprocessor Metrics Module
 
 **Files:**
+
 - Create: `lib/preprocessor-metrics.js`
 - Test: `tests/unit/preprocessor-metrics.test.js`
 
@@ -199,17 +206,23 @@ describe('preprocessor-metrics module', () => {
 
   it('exports imagesProcessedTotal counter', () => {
     expect(metrics.imagesProcessedTotal).toBeDefined();
-    expect(metrics.imagesProcessedTotal.name).toBe('imgboard_images_processed_total');
+    expect(metrics.imagesProcessedTotal.name).toBe(
+      'imgboard_images_processed_total'
+    );
   });
 
   it('exports processingDuration histogram', () => {
     expect(metrics.processingDuration).toBeDefined();
-    expect(metrics.processingDuration.name).toBe('imgboard_processing_duration_seconds');
+    expect(metrics.processingDuration.name).toBe(
+      'imgboard_processing_duration_seconds'
+    );
   });
 
   it('exports processingQueueDepth gauge', () => {
     expect(metrics.processingQueueDepth).toBeDefined();
-    expect(metrics.processingQueueDepth.name).toBe('imgboard_processing_queue_depth');
+    expect(metrics.processingQueueDepth.name).toBe(
+      'imgboard_processing_queue_depth'
+    );
   });
 
   it('exports imageSizeBytes histogram', () => {
@@ -314,6 +327,7 @@ git commit -m "feat: add preprocessor metrics module"
 ## Task 4: Instrument Server with Metrics
 
 **Files:**
+
 - Modify: `server.js:1-12` (imports)
 - Modify: `server.js:104-108` (middleware)
 - Modify: `server.js:115-119` (broadcast function)
@@ -377,11 +391,13 @@ function broadcast(event, data) {
 In the `/api/events` handler, update connect/disconnect:
 
 After `sseClients.push(res);` add:
+
 ```javascript
 sseClientsConnected.set(sseClients.length);
 ```
 
 In the `req.on('close')` callback, after filtering add:
+
 ```javascript
 sseClientsConnected.set(sseClients.length);
 ```
@@ -400,8 +416,9 @@ In the `/images/:filename` handler, in the success branch of `res.sendFile` call
 **Step 7: Add error tracking to existing error handlers**
 
 In catch blocks where `log('error', ...)` is called, add:
+
 ```javascript
-errorsTotal.inc({ source: 'api' });  // or 'watcher', 'sse' depending on context
+errorsTotal.inc({ source: 'api' }); // or 'watcher', 'sse' depending on context
 ```
 
 **Step 8: Run existing tests to verify no regressions**
@@ -422,6 +439,7 @@ git commit -m "feat: instrument server.js with Prometheus metrics"
 ## Task 5: Instrument Preprocessor with Metrics Server
 
 **Files:**
+
 - Modify: `preprocessor.js:1-6` (imports)
 - Modify: `preprocessor.js:30-66` (processImage function)
 - Modify: `preprocessor.js:98-141` (init function)
@@ -554,6 +572,7 @@ git commit -m "feat: instrument preprocessor with metrics and HTTP server"
 ## Task 6: Create Monitoring Directory Structure
 
 **Files:**
+
 - Create: `monitoring/prometheus/prometheus.yml`
 - Create: `monitoring/grafana/provisioning/datasources/prometheus.yml`
 - Create: `monitoring/grafana/provisioning/dashboards/dashboards.yml`
@@ -561,6 +580,7 @@ git commit -m "feat: instrument preprocessor with metrics and HTTP server"
 **Step 1: Create directory structure**
 
 Run:
+
 ```bash
 mkdir -p monitoring/prometheus
 mkdir -p monitoring/grafana/provisioning/datasources
@@ -637,6 +657,7 @@ git commit -m "feat: add Prometheus and Grafana provisioning config"
 ## Task 7: Create Grafana Dashboard
 
 **Files:**
+
 - Create: `monitoring/grafana/dashboards/img-board.json`
 
 **Step 1: Create the dashboard JSON**
@@ -1007,6 +1028,7 @@ git commit -m "feat: add Grafana dashboard for img-board metrics"
 ## Task 8: Create Alert Rules
 
 **Files:**
+
 - Create: `monitoring/grafana/alerting/alerts.yml`
 
 **Step 1: Create alert rules file**
@@ -1162,7 +1184,7 @@ groups:
             model:
               conditions:
                 - evaluator:
-                    params: [524288000]  # 500MB
+                    params: [524288000] # 500MB
                     type: gt
                   operator:
                     type: and
@@ -1255,6 +1277,7 @@ git commit -m "feat: add Grafana alert rules for critical and warning conditions
 ## Task 9: Update Docker Compose
 
 **Files:**
+
 - Modify: `docker-compose.yml`
 
 **Step 1: Update docker-compose.yml**
@@ -1271,7 +1294,7 @@ services:
     ports:
       - '3000:3000'
     expose:
-      - '9092'  # Preprocessor metrics (internal only)
+      - '9092' # Preprocessor metrics (internal only)
     volumes:
       # NAS mounts (adjust paths to your setup)
       - /mnt/nas/photos/raw:/mnt/photos/raw:ro
@@ -1365,13 +1388,14 @@ git commit -m "feat: add Prometheus and Grafana services to docker-compose"
 ## Task 10: Add Monitoring Documentation
 
 **Files:**
+
 - Create: `monitoring/README.md`
 
 **Step 1: Create monitoring README**
 
 Create `monitoring/README.md`:
 
-```markdown
+````markdown
 # Observability Stack
 
 This directory contains configuration for the img-board observability stack.
@@ -1393,6 +1417,7 @@ open http://localhost:3001
 # View Prometheus UI
 open http://localhost:9090
 ```
+````
 
 ## Default Credentials
 
@@ -1400,33 +1425,33 @@ open http://localhost:9090
 
 ## Metrics Endpoints
 
-| Service | Endpoint | Port |
-|---------|----------|------|
-| Server | `/metrics` | 3000 |
+| Service      | Endpoint   | Port |
+| ------------ | ---------- | ---- |
+| Server       | `/metrics` | 3000 |
 | Preprocessor | `/metrics` | 9092 |
 
 ## Available Metrics
 
 ### Server Metrics
 
-| Metric | Type | Description |
-|--------|------|-------------|
+| Metric                                   | Type      | Description          |
+| ---------------------------------------- | --------- | -------------------- |
 | `imgboard_http_request_duration_seconds` | Histogram | HTTP request latency |
-| `imgboard_sse_clients_connected` | Gauge | Current SSE clients |
-| `imgboard_sse_broadcasts_total` | Counter | SSE events by type |
-| `imgboard_images_served_total` | Counter | Images served |
-| `imgboard_errors_total` | Counter | Errors by source |
+| `imgboard_sse_clients_connected`         | Gauge     | Current SSE clients  |
+| `imgboard_sse_broadcasts_total`          | Counter   | SSE events by type   |
+| `imgboard_images_served_total`           | Counter   | Images served        |
+| `imgboard_errors_total`                  | Counter   | Errors by source     |
 
 ### Preprocessor Metrics
 
-| Metric | Type | Description |
-|--------|------|-------------|
-| `imgboard_images_processed_total` | Counter | Successful processing |
-| `imgboard_images_failed_total` | Counter | Failed processing |
-| `imgboard_processing_duration_seconds` | Histogram | Processing time |
-| `imgboard_processing_queue_depth` | Gauge | Pending images |
-| `imgboard_image_size_bytes` | Histogram | Output file sizes |
-| `imgboard_compression_ratio` | Histogram | Size reduction |
+| Metric                                 | Type      | Description           |
+| -------------------------------------- | --------- | --------------------- |
+| `imgboard_images_processed_total`      | Counter   | Successful processing |
+| `imgboard_images_failed_total`         | Counter   | Failed processing     |
+| `imgboard_processing_duration_seconds` | Histogram | Processing time       |
+| `imgboard_processing_queue_depth`      | Gauge     | Pending images        |
+| `imgboard_image_size_bytes`            | Histogram | Output file sizes     |
+| `imgboard_compression_ratio`           | Histogram | Size reduction        |
 
 ## Alert Rules
 
@@ -1454,20 +1479,22 @@ Default: 15 days. Change via Prometheus `--storage.tsdb.retention.time` flag in 
 ### Adding Panels
 
 Edit `grafana/dashboards/img-board.json` or use Grafana UI (changes persist in volume).
-```
+
+````
 
 **Step 2: Commit**
 
 ```bash
 git add monitoring/README.md
 git commit -m "docs: add monitoring stack documentation"
-```
+````
 
 ---
 
 ## Task 11: Integration Test for Metrics Endpoint
 
 **Files:**
+
 - Create: `tests/integration/metrics.test.js`
 
 **Step 1: Create integration test**
@@ -1481,9 +1508,7 @@ const BASE_URL = process.env.TEST_URL || 'http://localhost:3000';
 
 describe('Metrics Endpoint', () => {
   it('GET /metrics returns Prometheus format', async () => {
-    const response = await request(BASE_URL)
-      .get('/metrics')
-      .expect(200);
+    const response = await request(BASE_URL).get('/metrics').expect(200);
 
     expect(response.headers['content-type']).toMatch(/text\/plain/);
     expect(response.text).toContain('imgboard_http_request_duration_seconds');
@@ -1492,9 +1517,7 @@ describe('Metrics Endpoint', () => {
   });
 
   it('GET /metrics includes Node.js default metrics', async () => {
-    const response = await request(BASE_URL)
-      .get('/metrics')
-      .expect(200);
+    const response = await request(BASE_URL).get('/metrics').expect(200);
 
     expect(response.text).toContain('process_cpu_seconds_total');
     expect(response.text).toContain('process_resident_memory_bytes');
@@ -1535,6 +1558,7 @@ Expected: All 3 containers start successfully
 **Step 4: Verify metrics endpoints**
 
 Run:
+
 ```bash
 curl -s http://localhost:3000/metrics | head -20
 curl -s http://localhost:9092/metrics | head -20  # May need to exec into container network
@@ -1559,17 +1583,17 @@ git commit -m "feat: complete observability implementation"
 
 ## Summary
 
-| Task | Description | Files |
-|------|-------------|-------|
-| 1 | Add prom-client | package.json |
-| 2 | Metrics module | lib/metrics.js |
-| 3 | Preprocessor metrics | lib/preprocessor-metrics.js |
-| 4 | Instrument server | server.js |
-| 5 | Instrument preprocessor | preprocessor.js |
-| 6 | Monitoring config | monitoring/prometheus/, monitoring/grafana/provisioning/ |
-| 7 | Grafana dashboard | monitoring/grafana/dashboards/img-board.json |
-| 8 | Alert rules | monitoring/grafana/alerting/ |
-| 9 | Docker compose | docker-compose.yml |
-| 10 | Documentation | monitoring/README.md |
-| 11 | Integration test | tests/integration/metrics.test.js |
-| 12 | Final verification | - |
+| Task | Description             | Files                                                    |
+| ---- | ----------------------- | -------------------------------------------------------- |
+| 1    | Add prom-client         | package.json                                             |
+| 2    | Metrics module          | lib/metrics.js                                           |
+| 3    | Preprocessor metrics    | lib/preprocessor-metrics.js                              |
+| 4    | Instrument server       | server.js                                                |
+| 5    | Instrument preprocessor | preprocessor.js                                          |
+| 6    | Monitoring config       | monitoring/prometheus/, monitoring/grafana/provisioning/ |
+| 7    | Grafana dashboard       | monitoring/grafana/dashboards/img-board.json             |
+| 8    | Alert rules             | monitoring/grafana/alerting/                             |
+| 9    | Docker compose          | docker-compose.yml                                       |
+| 10   | Documentation           | monitoring/README.md                                     |
+| 11   | Integration test        | tests/integration/metrics.test.js                        |
+| 12   | Final verification      | -                                                        |
