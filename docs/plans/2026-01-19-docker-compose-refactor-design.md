@@ -3,6 +3,7 @@
 ## Goal
 
 Consolidate docker-compose files so that:
+
 - `docker-compose.yaml` is the production source of truth
 - `docker-compose.local.yaml` provides local development overrides
 - DRY: minimize duplication using Compose's override mechanism
@@ -10,6 +11,7 @@ Consolidate docker-compose files so that:
 ## Current State
 
 Two separate files with duplicated configuration:
+
 - `docker-compose.yml` (root) - local development
 - `deploy/docker-compose.yml` - production
 
@@ -50,7 +52,15 @@ services:
         max-size: '10m'
         max-file: '3'
     healthcheck:
-      test: ['CMD', 'wget', '-q', '--spider', '--no-check-certificate', 'https://localhost:3000/health']
+      test:
+        [
+          'CMD',
+          'wget',
+          '-q',
+          '--spider',
+          '--no-check-certificate',
+          'https://localhost:3000/health',
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -113,19 +123,27 @@ services:
     environment:
       - NODE_ENV=development
     healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000/health']
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://localhost:3000/health',
+        ]
 ```
 
 ## File Changes
 
-| Action | File |
-|--------|------|
-| Create | `docker-compose.yaml` |
+| Action | File                        |
+| ------ | --------------------------- |
+| Create | `docker-compose.yaml`       |
 | Create | `docker-compose.local.yaml` |
-| Delete | `docker-compose.yml` |
+| Delete | `docker-compose.yml`        |
 | Delete | `deploy/docker-compose.yml` |
-| Update | `Makefile` |
-| Update | `deploy/deploy.sh` |
+| Update | `Makefile`                  |
+| Update | `deploy/deploy.sh`          |
 
 ## Makefile Changes
 
@@ -145,11 +163,13 @@ endif
 ## deploy/deploy.sh Changes
 
 Change line 44 from:
+
 ```bash
 cp "$SCRIPT_DIR/docker-compose.yml" "$APP_DIR/docker-compose.yml"
 ```
 
 To:
+
 ```bash
 cp "$APP_DIR/source/docker-compose.yaml" "$APP_DIR/docker-compose.yaml"
 ```
@@ -157,6 +177,7 @@ cp "$APP_DIR/source/docker-compose.yaml" "$APP_DIR/docker-compose.yaml"
 ## Usage
 
 **Local development:**
+
 ```bash
 make up      # Uses both files automatically
 make logs
@@ -164,6 +185,7 @@ make down
 ```
 
 **Production deployment:**
+
 ```bash
 make deploy  # Runs deploy.sh, copies docker-compose.yaml to /opt/imgboard
 ```

@@ -15,6 +15,7 @@
 ### Task 1: Create docker-compose.yaml (Production Base)
 
 **Files:**
+
 - Create: `docker-compose.yaml`
 
 **Step 1: Create the production base compose file**
@@ -47,7 +48,15 @@ services:
         max-size: '10m'
         max-file: '3'
     healthcheck:
-      test: ['CMD', 'wget', '-q', '--spider', '--no-check-certificate', 'https://localhost:3000/health']
+      test:
+        [
+          'CMD',
+          'wget',
+          '-q',
+          '--spider',
+          '--no-check-certificate',
+          'https://localhost:3000/health',
+        ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -111,6 +120,7 @@ git commit -m "feat: add production docker-compose.yaml base"
 ### Task 2: Create docker-compose.local.yaml (Local Override)
 
 **Files:**
+
 - Create: `docker-compose.local.yaml`
 
 **Step 1: Create the local development override file**
@@ -129,7 +139,15 @@ services:
     environment:
       - NODE_ENV=development
     healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000/health']
+      test:
+        [
+          'CMD',
+          'wget',
+          '--no-verbose',
+          '--tries=1',
+          '--spider',
+          'http://localhost:3000/health',
+        ]
 ```
 
 **Step 2: Verify combined config**
@@ -149,6 +167,7 @@ git commit -m "feat: add docker-compose.local.yaml for dev overrides"
 ### Task 3: Update Makefile
 
 **Files:**
+
 - Modify: `Makefile:3-14`
 
 **Step 1: Update compose file variables and conditionals**
@@ -189,6 +208,7 @@ git commit -m "refactor: update Makefile to use new compose file structure"
 ### Task 4: Update deploy/deploy.sh
 
 **Files:**
+
 - Modify: `deploy/deploy.sh:43-44`
 
 **Step 1: Update compose file copy to use source repo**
@@ -196,12 +216,14 @@ git commit -m "refactor: update Makefile to use new compose file structure"
 Replace lines 43-44:
 
 From:
+
 ```bash
 # Copy docker-compose.yml
 cp "$SCRIPT_DIR/docker-compose.yml" "$APP_DIR/docker-compose.yml"
 ```
 
 To:
+
 ```bash
 # Copy docker-compose.yaml from source
 cp "$APP_DIR/source/docker-compose.yaml" "$APP_DIR/docker-compose.yaml"
@@ -224,6 +246,7 @@ git commit -m "refactor: deploy.sh copies compose file from source repo"
 ### Task 5: Delete Old Files
 
 **Files:**
+
 - Delete: `docker-compose.yml`
 - Delete: `deploy/docker-compose.yml`
 
