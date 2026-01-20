@@ -5,3 +5,4 @@ logs/
 .reprocess-progress.json
 *.pem
 .env
+.worktrees/
