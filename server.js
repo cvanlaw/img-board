@@ -880,7 +880,9 @@ app.get('/api/admin/trash-image/:filename', (req, res) => {
         filename,
         error: err.message,
       });
-      res.status(404).send('Not found');
+      if (!res.headersSent) {
+        res.status(404).send('Not found');
+      }
     }
   });
 });
@@ -946,7 +948,9 @@ app.get('/images/:filename', (req, res) => {
         filename: safeName,
         error: err.message,
       });
-      res.status(404).send('Not found');
+      if (!res.headersSent) {
+        res.status(404).send('Not found');
+      }
     } else {
       log('info', 'Image served', { filename: safeName });
       imagesServedTotal.inc();
