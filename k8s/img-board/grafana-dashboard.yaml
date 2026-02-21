@@ -4,7 +4,7 @@ metadata:
   name: img-board-grafana-dashboard
   labels:
     app: img-board
-    grafana_dashboard: "1"
+    grafana_dashboard: '1'
 data:
   img-board.json: |
     {

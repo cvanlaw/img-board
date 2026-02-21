@@ -1069,9 +1069,10 @@ metricsServer.listen(9091, () => {
 function startServer() {
   let server;
 
-  const httpsEnabled = process.env.HTTPS_ENABLED !== undefined
-    ? process.env.HTTPS_ENABLED === 'true'
-    : config.https?.enabled;
+  const httpsEnabled =
+    process.env.HTTPS_ENABLED !== undefined
+      ? process.env.HTTPS_ENABLED === 'true'
+      : config.https?.enabled;
 
   if (httpsEnabled) {
     try {
