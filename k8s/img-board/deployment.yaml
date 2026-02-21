@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: img-board
+  labels:
+    app: img-board
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: img-board
+  template:
+    metadata:
+      labels:
+        app: img-board
+    spec:
+      containers:
+        - name: img-board
+          image: ghcr.io/cvanlaw/img-board:latest
+          ports:
+            - name: web
+              containerPort: 3000
+            - name: server-metrics
+              containerPort: 9091
+            - name: preproc-metrics
+              containerPort: 9092
+          env:
+            - name: NODE_ENV
+              value: production
+            - name: HTTPS_ENABLED
+              value: "false"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 30
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          volumeMounts:
+            - name: config
+              mountPath: /app/config.json
+              subPath: config.json
+            - name: photos
+              mountPath: /mnt/photos/raw
+              subPath: raw
+            - name: photos
+              mountPath: /mnt/photos/processed
+              subPath: processed
+            - name: photos
+              mountPath: /mnt/photos/archive
+              subPath: archive
+      volumes:
+        - name: config
+          configMap:
+            name: img-board-config
+        - name: photos
+          nfs:
+            server: 192.168.0.11
+            path: /volume1/img-board

@@ -1,0 +1,15 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: img-board
+  labels:
+    app: img-board
+spec:
+  selector:
+    matchLabels:
+      app: img-board
+  endpoints:
+    - port: server-metrics
+      interval: 15s
+    - port: preprocessor-metrics
+      interval: 15s

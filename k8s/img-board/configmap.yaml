@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: img-board-config
+  labels:
+    app: img-board
+data:
+  config.json: |
+    {
+      "preprocessing": {
+        "enabled": true,
+        "rawImagePath": "/mnt/photos/raw",
+        "processedImagePath": "/mnt/photos/processed",
+        "inputExtensions": [".jpg", ".jpeg", ".png"],
+        "outputFormat": "webp",
+        "quality": 85,
+        "targetWidth": 1920,
+        "targetHeight": 1080,
+        "keepOriginals": true,
+        "archivePath": "/mnt/photos/archive"
+      },
+      "imagePath": "/mnt/photos/processed",
+      "imageExtensions": [".webp"],
+      "slideshowInterval": 5000,
+      "randomOrder": true,
+      "reshuffleInterval": 3600000,
+      "recursive": false,
+      "port": 3000,
+      "https": {
+        "enabled": false,
+        "cert": "",
+        "key": ""
+      },
+      "admin": {
+        "enabled": true,
+        "allowedIPs": [],
+        "trashPath": "/mnt/photos/trash"
+      }
+    }

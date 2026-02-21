@@ -1,0 +1,17 @@
+apiVersion: traefik.io/v1alpha1
+kind: IngressRoute
+metadata:
+  name: img-board
+  labels:
+    app: img-board
+spec:
+  entryPoints:
+    - websecure
+  routes:
+    - match: Host(`imgboard.alton.vanlawlabs.com`)
+      kind: Rule
+      services:
+        - name: img-board
+          port: 3000
+  tls:
+    secretName: wildcard-cert

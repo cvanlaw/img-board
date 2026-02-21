@@ -1,0 +1,49 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: img-board
+  labels:
+    app: img-board
+spec:
+  groups:
+    - name: img-board.rules
+      rules:
+        - alert: ServerDown
+          expr: up{job="server"} == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: Server is not responding to Prometheus scrapes
+
+        - alert: PreprocessorDown
+          expr: up{job="preprocessor"} == 0
+          for: 1m
+          labels:
+            severity: critical
+          annotations:
+            summary: Preprocessor is not responding to Prometheus scrapes
+
+        - alert: HighErrorRate
+          expr: rate(imgboard_errors_total[5m]) > 0.1
+          for: 2m
+          labels:
+            severity: critical
+          annotations:
+            summary: Error rate exceeds 0.1 errors per second over 5 minute window
+
+        - alert: HighMemory
+          expr: process_resident_memory_bytes > 500000000
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Process memory usage exceeds 500MB
+
+        - alert: LargeQueueDepth
+          expr: imgboard_processing_queue_depth > 50
+          for: 5m
+          labels:
+            severity: warning
+          annotations:
+            summary: Image processing queue depth exceeds 50 items
