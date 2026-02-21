@@ -64,3 +64,25 @@ jobs:
       - run: docker compose build
         env:
           BUILD_CONTEXT: .
+
+  publish:
+    name: Publish to GHCR
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [lint, format, unit-tests, integration-tests, build]
+    permissions:
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/cvanlaw/img-board:latest
+            ghcr.io/cvanlaw/img-board:${{ github.sha }}
