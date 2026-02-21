@@ -1069,7 +1069,11 @@ metricsServer.listen(9091, () => {
 function startServer() {
   let server;
 
-  if (config.https?.enabled) {
+  const httpsEnabled = process.env.HTTPS_ENABLED !== undefined
+    ? process.env.HTTPS_ENABLED === 'true'
+    : config.https?.enabled;
+
+  if (httpsEnabled) {
     try {
       const options = {
         cert: fsSync.readFileSync(config.https.cert),
