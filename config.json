@@ -13,7 +13,7 @@
   },
   "imagePath": "/mnt/photos/processed",
   "imageExtensions": [".webp"],
-  "slideshowInterval": 5000,
+  "slideshowInterval": 600000,
   "randomOrder": true,
   "reshuffleInterval": 3600000,
   "recursive": false,
